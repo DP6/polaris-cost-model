@@ -1,0 +1,53 @@
+name: Apps Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/**"
+      - ".github/workflows/apps-deploy.yml"
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  REGION: us-central1
+  AR: us-central1-docker.pkg.dev/dp6-ci-polaris/apps
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { app: billing-api, dir: apps/api }
+          - { app: billing-web, dir: apps/web }
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER_APPLY }}
+          service_account: ${{ secrets.WIF_SA_APPLY }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: docker auth
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: build & push
+        run: |
+          IMG="${AR}/${{ matrix.app }}:${GITHUB_SHA::12}"
+          docker build -t "$IMG" "${{ matrix.dir }}"
+          docker push "$IMG"
+          echo "IMG=$IMG" >> "$GITHUB_ENV"
+
+      # dev e prod compartilham a mesma imagem (o isolamento e dataset/servico, nao imagem)
+      - name: deploy dev + prod
+        run: |
+          for ENV in dev prod; do
+            gcloud run deploy "${{ matrix.app }}-${ENV}" \
+              --region "$REGION" --image "$IMG" --quiet
+          done

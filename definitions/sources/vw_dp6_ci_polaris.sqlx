@@ -1,0 +1,7 @@
+config {
+  type: "declaration",
+  database: dataform.projectConfig.vars.source_project,
+  schema: dataform.projectConfig.vars.source_dataset,
+  name: dataform.projectConfig.vars.source_view,
+  description: "Billing export detalhado (resource-level) filtrado por project.id = 'dp6-ci-polaris'. SELECT * sem dedup/agregacao. Tabela real: dp6-billing-voucher.billing_export.gcp_billing_export_resource_v1_008012_F93445_DFD798."
+}

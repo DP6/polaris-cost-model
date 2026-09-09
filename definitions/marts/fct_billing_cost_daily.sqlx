@@ -1,0 +1,41 @@
+config {
+  type: "incremental",
+  schema: dataform.projectConfig.vars.mart_dataset,
+  tags: ["billing_polaris"],
+  description: "Fato diario de custo. Grao: invoice_month x usage_date x service x sku x pricing_unit x location x cost_type x label_environment x label_app x label_managed_by.",
+  bigquery: {
+    partitionBy: "usage_date",
+    clusterBy: ["service_description", "label_app"],
+    updatePartitionFilter: "usage_date >= DATE_SUB(CURRENT_DATE('America/Sao_Paulo'), INTERVAL 45 DAY)"
+  }
+}
+
+js { const c = require("includes/constants"); }
+
+SELECT
+  invoice_month,
+  invoice_month_date,
+  usage_date,
+  service_description,
+  sku_description,
+  pricing_unit,
+  location_location,
+  cost_type,
+  label_environment,
+  label_app,
+  label_managed_by,
+
+  SUM(gross_cost_brl)                 AS gross_cost_brl,
+  SUM(credits_total_brl)              AS credits_total_brl,
+  SUM(net_cost_brl)                   AS net_cost_brl,
+  SUM(cost_at_list_brl)              AS cost_at_list_brl,
+  SUM(gross_cost_usd)                AS gross_cost_usd,
+  SUM(net_cost_usd)                  AS net_cost_usd,
+  SUM(usage_amount_pricing_units)    AS usage_amount_pricing_units,
+  COUNT(*)                           AS line_count
+
+FROM ${ref("stg_billing_polaris")}
+${when(incremental(), `WHERE ${c.lookbackFilter("usage_date")}`)}
+GROUP BY
+  invoice_month, invoice_month_date, usage_date, service_description, sku_description,
+  pricing_unit, location_location, cost_type, label_environment, label_app, label_managed_by

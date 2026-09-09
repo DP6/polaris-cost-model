@@ -1,0 +1,13 @@
+config {
+  type: "assertion",
+  tags: ["billing_polaris"],
+  description: "Apos o dedup do staging, nenhuma linha 100% identica repetida. (assert_stg_grain_unique no sentido estrito falharia — validation #09 mostrou 2.302 splits legitimos com custos distintos.)"
+}
+
+SELECT row_hash, COUNT(*) AS n
+FROM (
+  SELECT TO_JSON_STRING(t) AS row_hash
+  FROM ${ref("stg_billing_polaris")} t
+)
+GROUP BY row_hash
+HAVING COUNT(*) > 1

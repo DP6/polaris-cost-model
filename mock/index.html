@@ -1,0 +1,688 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Custo CI Polaris</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&family=Ubuntu+Mono:wght@400;700&display=swap">
+<style>
+/* ============ DP6 Design System — tokens (espelho de polaris-heap/DP6-Design-System.md) ============ */
+:root{
+  --bg:#fcfcfb; --surface:#ffffff; --well:#f4f1ea;
+  --ink:#1d1d1b; --ink-dim:#5b626c; --ink-mute:#8b9099;
+  --hair:#e7e3d8; --hair-strong:#d8d3c4;
+  --accent:#ffb302; --accent-press:#c98a00;
+  /* paleta de gráficos DP6 — light. azul/verde validados p/ CVD; roxo/rosa reservados; vermelho = status */
+  --c-net:#1a365d; --c-alt:#059669; --c-other:#8a8f96;
+  --c-alert:#d64500; --c-credit:#6b46c1;
+  --ok:#059669; --warn:#b7791f; --bad:#d64500;
+  --focus:rgba(255,179,2,.45);
+  --shadow-md:0 2px 10px rgba(29,29,27,.08);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#1d1d1b; --surface:#242422; --well:#1a1a19;
+    --ink:#f2f1ec; --ink-dim:#a7abb0; --ink-mute:#7c8188;
+    --hair:#37372f; --hair-strong:#454439;
+    --accent:#ffb302; --accent-press:#ffca4d;
+    --c-net:#63b3ed; --c-alt:#34d399; --c-other:#6b7078;
+    --c-alert:#e53e3e; --c-credit:#b794f4;
+    --ok:#34d399; --warn:#e0a94a; --bad:#e53e3e;
+    --focus:rgba(255,179,2,.5);
+    --shadow-md:0 2px 12px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1d1d1b; --surface:#242422; --well:#1a1a19;
+  --ink:#f2f1ec; --ink-dim:#a7abb0; --ink-mute:#7c8188;
+  --hair:#37372f; --hair-strong:#454439;
+  --accent:#ffb302; --accent-press:#ffca4d;
+  --c-net:#63b3ed; --c-alt:#34d399; --c-other:#6b7078;
+  --c-alert:#e53e3e; --c-credit:#b794f4;
+  --ok:#34d399; --warn:#e0a94a; --bad:#e53e3e;
+  --focus:rgba(255,179,2,.5);
+  --shadow-md:0 2px 12px rgba(0,0,0,.4);
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font:400 15px/1.6 Ubuntu,"Segoe UI",system-ui,-apple-system,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{margin:0; font-weight:500; letter-spacing:-.01em; text-wrap:balance}
+.mono{font-family:"Ubuntu Mono",ui-monospace,"SF Mono",Menlo,monospace; font-variant-numeric:tabular-nums}
+.eyebrow{font:500 11px/1.4 Ubuntu,sans-serif; letter-spacing:.22em; text-transform:uppercase; color:var(--ink-dim)}
+a{color:inherit}
+button,select{font:inherit; color:inherit}
+:focus-visible{outline:3px solid var(--focus); outline-offset:2px; border-radius:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
+
+/* ============ chrome ============ */
+.topbar{
+  position:sticky; top:0; z-index:20; display:flex; align-items:center; gap:14px;
+  height:56px; padding:0 28px; background:var(--ink); color:#f2f1ec;
+  border-bottom:1px solid #000;
+}
+.brandmark{display:block}
+.topbar .name{font-weight:500}
+.topbar .sub{color:#a7abb0; font-size:13px}
+.topbar .spacer{flex:1}
+.pill{
+  font:400 11px/1 "Ubuntu Mono",monospace; letter-spacing:.04em;
+  padding:5px 9px; border:1px solid #4a4a44; border-radius:999px; color:#d9d6cc; white-space:nowrap;
+}
+.icon-btn{
+  display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px;
+  background:transparent; border:1px solid #4a4a44; border-radius:4px; cursor:pointer; color:#f2f1ec;
+}
+.icon-btn:hover{border-color:var(--accent)}
+
+.filters{
+  display:flex; flex-wrap:wrap; align-items:end; gap:18px 22px;
+  padding:14px 28px; background:var(--well); border-bottom:1px solid var(--hair);
+}
+.field{display:flex; flex-direction:column; gap:4px}
+.field label{font:500 10px/1 Ubuntu,sans-serif; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-dim)}
+.field select{
+  appearance:none; -webkit-appearance:none; padding:7px 30px 7px 10px; min-width:132px;
+  background:var(--surface) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%235b626c'/></svg>") no-repeat right 10px center;
+  border:1px solid var(--hair-strong); border-radius:4px; font-size:14px;
+}
+.filters .note{margin-left:auto; align-self:center; font-size:12px; color:var(--ink-mute); max-width:230px}
+
+.tabs{display:flex; gap:2px; padding:0 20px; border-bottom:1px solid var(--hair); background:var(--bg); overflow-x:auto}
+.tab{
+  padding:14px 14px 12px; background:none; border:0; border-bottom:2px solid transparent;
+  color:var(--ink-dim); cursor:pointer; white-space:nowrap; font-size:14px;
+}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{color:var(--ink); border-bottom-color:var(--accent); font-weight:500}
+
+main{max-width:1180px; margin:0 auto; padding:28px}
+.panel[hidden]{display:none}
+.panel{display:flex; flex-direction:column; gap:26px}
+.panel > header{display:flex; flex-direction:column; gap:3px}
+.panel > header p{margin:0; color:var(--ink-dim); font-size:13.5px; max-width:64ch}
+
+/* ============ cards & tiles ============ */
+.card{
+  background:var(--surface); border:1px solid var(--hair); border-radius:8px; padding:22px;
+}
+.card > h3{font-size:15px}
+.card .cap{margin:2px 0 0; color:var(--ink-mute); font-size:12.5px}
+.grid{display:grid; gap:16px}
+
+.scorecard{grid-template-columns:repeat(auto-fit,minmax(188px,1fr))}
+.tile{background:var(--surface); border:1px solid var(--hair); border-radius:8px; padding:16px 16px 15px; display:flex; flex-direction:column; gap:7px}
+.tile.flag{border-top:2px solid var(--accent)}
+.tile .k{font:500 10px/1.3 Ubuntu,sans-serif; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-dim)}
+.tile .v{font-family:"Ubuntu Mono",monospace; font-weight:700; font-size:27px; letter-spacing:-.02em; line-height:1.05}
+.tile .s{font-size:12px; color:var(--ink-dim)}
+.tile .s .mono{font-size:12px}
+.delta-down{color:var(--ok)} .delta-up{color:var(--bad)}
+.chip{display:inline-flex; align-items:center; gap:5px; align-self:flex-start; padding:3px 8px; border-radius:999px; font-size:11.5px; font-weight:500}
+.chip.ok{background:color-mix(in srgb,var(--ok) 15%,transparent); color:var(--ok)}
+.chip.warn{background:color-mix(in srgb,var(--warn) 16%,transparent); color:var(--warn)}
+.chip.bad{background:color-mix(in srgb,var(--bad) 15%,transparent); color:var(--bad)}
+.bar-track{height:5px; border-radius:3px; background:var(--well); overflow:hidden; margin-top:2px}
+.bar-fill{height:100%; background:var(--accent)}
+
+.row-2{display:grid; grid-template-columns:1.55fr 1fr; gap:16px}
+@media (max-width:860px){.row-2{grid-template-columns:1fr}}
+
+/* legend + tables */
+.legend{display:flex; flex-wrap:wrap; gap:14px; margin-top:12px; font-size:12.5px; color:var(--ink-dim)}
+.legend span{display:inline-flex; align-items:center; gap:6px}
+.swatch{width:11px; height:11px; border-radius:2px; flex:none}
+.datatable{width:100%; border-collapse:collapse; font-size:13px; margin-top:4px}
+.datatable th,.datatable td{text-align:right; padding:7px 10px; border-bottom:1px solid var(--hair)}
+.datatable th:first-child,.datatable td:first-child{text-align:left}
+.datatable thead th{font:500 10px/1.4 Ubuntu,sans-serif; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-dim); border-bottom-color:var(--hair-strong)}
+.datatable td.num{font-family:"Ubuntu Mono",monospace; font-variant-numeric:tabular-nums}
+.datatable tr:last-child td{border-bottom:0}
+.toggle-tbl{margin-top:12px; background:none; border:1px solid var(--hair-strong); border-radius:4px; padding:5px 10px; font-size:12px; cursor:pointer; color:var(--ink-dim)}
+.toggle-tbl:hover{border-color:var(--accent); color:var(--ink)}
+
+/* svg chart shell */
+.chartwrap{margin-top:6px; background:var(--well); border-radius:6px; padding:12px 10px 6px}
+svg.chart{display:block; width:100%; height:auto; font-family:"Ubuntu Mono",monospace}
+.chart text{fill:var(--ink-dim)}
+.chart .tickline{stroke:var(--hair-strong); stroke-width:1}
+.chart .axis{stroke:var(--hair-strong); stroke-width:1}
+.tooltip{
+  position:fixed; z-index:40; pointer-events:none; background:var(--ink); color:#f2f1ec;
+  font:400 12px/1.4 "Ubuntu Mono",monospace; padding:7px 9px; border-radius:4px; box-shadow:var(--shadow-md);
+  opacity:0; transition:opacity .12s;
+}
+
+.recon-row{display:grid; grid-template-columns:78px 1fr 96px 74px; align-items:center; gap:12px; padding:11px 0; border-bottom:1px solid var(--hair)}
+.recon-row:last-child{border-bottom:0}
+.recon-row .m{font-family:"Ubuntu Mono",monospace; color:var(--ink-dim); font-size:13px}
+.recon-row .val{font-family:"Ubuntu Mono",monospace; font-weight:700; text-align:right}
+.recon-bar{height:14px; background:var(--well); border-radius:3px; overflow:hidden; display:flex}
+.recon-bar i{display:block; height:100%}
+
+.callout{display:flex; gap:12px; padding:14px 16px; background:var(--well); border:1px solid var(--hair); border-left:2px solid var(--accent); border-radius:6px; font-size:13.5px}
+.callout b{font-weight:500}
+
+.placeholder{text-align:center; padding:40px 24px; border:1px dashed var(--hair-strong); border-radius:8px; background:var(--well)}
+.placeholder h3{font-size:20px; font-weight:300; letter-spacing:-.02em}
+.placeholder p{margin:8px auto 0; max-width:52ch; color:var(--ink-dim); font-size:13.5px}
+
+footer{border-top:1px solid var(--hair); background:var(--ink); color:#a7abb0; padding:16px 28px; font:400 11.5px/1.5 "Ubuntu Mono",monospace}
+footer b{color:#d9d6cc; font-weight:400}
+</style>
+</head>
+<body data-palette="#1a365d,#059669,#8a8f96">
+
+<header class="topbar">
+  <svg class="brandmark" width="26" height="18" viewBox="0 0 26 18" aria-hidden="true">
+    <path d="M2 18 L2 12 L7 10 L7 18 Z" fill="#ffb302"/>
+    <path d="M10 18 L10 7 L15 5 L15 18 Z" fill="#ffb302"/>
+    <path d="M18 18 L18 2 L23 0 L23 18 Z" fill="#ffb302"/>
+  </svg>
+  <span class="name">CI Polaris</span>
+  <span class="sub">· controle de custo</span>
+  <span class="spacer"></span>
+  <span class="pill">amostra · validação 2026-09-09</span>
+  <button class="icon-btn" id="themeBtn" aria-label="Alternar tema" title="Alternar tema">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="3.4"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.4 1.4M11.6 11.6L13 13M13 3l-1.4 1.4M4.4 11.6L3 13"/></svg>
+  </button>
+</header>
+
+<div class="filters">
+  <div class="field"><label for="f-period">Período</label>
+    <select id="f-period"><option>Últimos 30 dias</option><option>Últimos 60 dias</option><option>Mês corrente</option><option>Tudo</option></select></div>
+  <div class="field"><label for="f-env">Ambiente</label>
+    <select id="f-env"><option>Todos</option><option>prod</option><option>dev</option></select></div>
+  <div class="field"><label for="f-app">App</label>
+    <select id="f-app"><option>Todos</option><option>atlas</option><option>polaris-cost-control</option><option>observability-hub</option></select></div>
+  <div class="field"><label for="f-cur">Moeda</label>
+    <select id="f-cur"><option>BRL</option><option>USD</option></select></div>
+  <p class="note">Filtros ilustrativos — este é um mock de referência, sem back-end.</p>
+</div>
+
+<nav class="tabs" role="tablist" aria-label="Seções">
+  <button class="tab" role="tab" aria-selected="true"  aria-controls="p-visao"  id="t-visao">Visão geral</button>
+  <button class="tab" role="tab" aria-selected="false" aria-controls="p-tend"   id="t-tend">Tendência</button>
+  <button class="tab" role="tab" aria-selected="false" aria-controls="p-skus"   id="t-skus">Serviços &amp; SKUs</button>
+  <button class="tab" role="tab" aria-selected="false" aria-controls="p-anom"   id="t-anom">Anomalias</button>
+  <button class="tab" role="tab" aria-selected="false" aria-controls="p-show"   id="t-show">Showback</button>
+</nav>
+
+<main>
+
+  <!-- ============ VISÃO GERAL ============ -->
+  <section class="panel" id="p-visao" role="tabpanel" aria-labelledby="t-visao">
+    <header>
+      <span class="eyebrow">Setembro 2026 · mês corrente (MTD, 9 dias)</span>
+      <h1 style="font-size:22px">Visão geral</h1>
+      <p>Custo faturado do projeto <span class="mono">dp6-ci-polaris</span> a partir do billing export. Fatura em BRL; conversão USD pela taxa da linha.</p>
+    </header>
+
+    <div class="grid scorecard" id="scorecard"></div>
+
+    <div class="row-2">
+      <div class="card">
+        <h3>Custo líquido diário</h3>
+        <p class="cap">Área = custo líquido do dia · linha tracejada = média móvel 7 dias. Últimos 30 dias.</p>
+        <div class="chartwrap"><div id="c-daily"></div></div>
+      </div>
+      <div class="card">
+        <h3>Custo por serviço</h3>
+        <p class="cap">Acumulado do período (R$). Cloud Run concentra 82% do gasto.</p>
+        <div id="c-services"></div>
+        <button class="toggle-tbl" data-target="tbl-services" aria-expanded="false">Ver tabela</button>
+        <div id="tbl-services" hidden></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Reconciliação com a fatura</h3>
+      <p class="cap">net = custo bruto + créditos. Cada mês confere com o relatório de faturamento do console.</p>
+      <div id="recon" style="margin-top:8px"></div>
+    </div>
+  </section>
+
+  <!-- ============ TENDÊNCIA ============ -->
+  <section class="panel" id="p-tend" role="tabpanel" aria-labelledby="t-tend" hidden>
+    <header>
+      <span class="eyebrow">Evolução mês a mês</span>
+      <h1 style="font-size:22px">Tendência</h1>
+      <p>Três meses de histórico (jul/2026 é o primeiro mês, quase zero). Setembro é parcial — a barra fantasma mostra o run-rate projetado.</p>
+    </header>
+
+    <div class="card">
+      <h3>Custo líquido mensal por serviço</h3>
+      <p class="cap">Barras empilhadas. Só as duas séries validadas para daltonismo (azul/verde) + "Outros".</p>
+      <div class="chartwrap"><div id="c-monthly"></div></div>
+      <div class="legend" id="lg-monthly"></div>
+    </div>
+
+    <div class="row-2">
+      <div class="card">
+        <h3>Variação mês a mês</h3>
+        <p class="cap">Δ sobre o mês anterior. Setembro: run-rate (fantasma) vs. realizado (MTD).</p>
+        <div class="chartwrap"><div id="c-mom"></div></div>
+      </div>
+      <div class="card">
+        <h3>Ritmo acumulado</h3>
+        <p class="cap">Acúmulo dia a dia: setembro vs. agosto no mesmo ponto do mês.</p>
+        <div class="chartwrap"><div id="c-pace"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SERVIÇOS & SKUs ============ -->
+  <section class="panel" id="p-skus" role="tabpanel" aria-labelledby="t-skus" hidden>
+    <header>
+      <span class="eyebrow">Detalhe por SKU</span>
+      <h1 style="font-size:22px">Serviços &amp; SKUs</h1>
+      <p>Composição do custo por SKU e custo unitário. Chip de atenção em SKU visto pela primeira vez nos últimos 30 dias.</p>
+    </header>
+
+    <div class="callout"><span aria-hidden="true">◆</span><span><b>SKU novo (últimos 30 dias):</b> <span class="mono">Cloud Run · Requests</span> — primeira ocorrência 2026-08-28. Sem histórico para comparar.</span></div>
+
+    <div class="card">
+      <h3>Custo por serviço → SKU</h3>
+      <p class="cap">Barras aninhadas. Expandível por serviço no app; aqui, Cloud Run detalhado.</p>
+      <div id="c-sku" style="margin-top:8px"></div>
+    </div>
+
+    <div class="card">
+      <h3>Custo unitário por SKU</h3>
+      <p class="cap">custo unitário = custo líquido ÷ uso (na unidade de preço). Amostra do período.</p>
+      <div id="tbl-unit"></div>
+    </div>
+  </section>
+
+  <!-- ============ ANOMALIAS ============ -->
+  <section class="panel" id="p-anom" role="tabpanel" aria-labelledby="t-anom" hidden>
+    <header>
+      <span class="eyebrow">Dias fora do padrão</span>
+      <h1 style="font-size:22px">Anomalias</h1>
+      <p>Sinaliza quando o custo do dia passa de <span class="mono">z-score &gt; 3</span> <b>e</b> de <span class="mono">R$ 1,00/dia</span> — o piso absoluto evita ruído na escala de centavos.</p>
+    </header>
+
+    <div class="callout"><span aria-hidden="true">▲</span><span><b>2 dias sinalizados</b> em 52 analisados · ambos no Cloud Run, semana de deploy/carga de 21–26/ago.</span></div>
+
+    <div class="card">
+      <h3>Ocorrências</h3>
+      <p class="cap">Sparkline = custo diário do serviço nos 30 dias ao redor; ponto vermelho = o dia sinalizado.</p>
+      <div id="anom-list" style="margin-top:10px"></div>
+    </div>
+  </section>
+
+  <!-- ============ SHOWBACK ============ -->
+  <section class="panel" id="p-show" role="tabpanel" aria-labelledby="t-show" hidden>
+    <header>
+      <span class="eyebrow">Rateio por app / ambiente</span>
+      <h1 style="font-size:22px">Showback</h1>
+      <p>Depende das labels <span class="mono">app</span> / <span class="mono">environment</span> / <span class="mono">managed-by</span> nos recursos.</p>
+    </header>
+
+    <div class="placeholder">
+      <h3>Aguardando aplicação das labels</h3>
+      <p>Hoje só 4–10% do custo carrega label (rollout iniciado em 26/08, ver <span class="mono">atlas/docs/finops-labels.md</span>). Enquanto a cobertura não sobe, o rateio por app×ambiente fica desativado — só a cobertura é exibida.</p>
+    </div>
+
+    <div class="card">
+      <h3>Cobertura de label (por custo)</h3>
+      <p class="cap">Fração do custo líquido com cada chave preenchida.</p>
+      <div id="c-coverage" style="margin-top:10px"></div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <b>mock visual</b> · polaris-cost-model/mock · dados: validação de 2026-09-09 (R$ 26,41 em ~2 meses) ·
+  <b>não é o app</b> — referência visual para <b>apps/web/</b> · paleta: DP6 Design System
+</footer>
+
+<div class="tooltip" id="tt"></div>
+
+<script>
+"use strict";
+/* ================= dados (validação 2026-09-09) ================= */
+const CUR = {rate:5.8703}; // taxa BRL/USD do mês corrente
+const brl = v => "R$ " + v.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
+const usd = v => "US$ " + (v/CUR.rate).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
+const pct = v => (v>=0?"+":"") + v.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1}) + "%";
+
+// custo líquido diário (R$), 2026-08-10 .. 2026-09-09
+const DAILY = [
+  ["08-10",0],["08-11",0],["08-12",0],["08-13",0],["08-14",0],["08-15",0],["08-16",0],["08-17",0],["08-18",0],["08-19",0],
+  ["08-20",0.20],["08-21",5.29],["08-22",3.08],["08-23",0.27],["08-24",4.59],["08-25",6.20],["08-26",2.01],["08-27",0.21],
+  ["08-28",0.97],["08-29",0.17],["08-30",0.17],["08-31",0.40],
+  ["09-01",0.16],["09-02",0.20],["09-03",0.19],["09-04",0.41],["09-05",0.29],["09-06",0.31],["09-07",0.26],["09-08",0.29],["09-09",0.15]
+];
+const SERVICES = [
+  ["Cloud Run",21.81],["BigQuery",1.75],["Secret Manager",1.57],
+  ["Artifact Registry",0.77],["Cloud Scheduler",0.50],["Cloud Storage",0.01]
+];
+const MONTHS = [ // mês, cloud run, bigquery, outros, gross, credits, net
+  {m:"jul/26", cr:0,      bq:0,    ot:0,    gross:0,     cred:0,     net:0},
+  {m:"ago/26", cr:20.28,  bq:1.44, ot:1.93, gross:23.65, cred:0,     net:23.65},
+  {m:"set/26", cr:0.86,   bq:0.02, ot:1.31, gross:2.75,  cred:-0.57, net:2.19}
+];
+const PACE = { // acúmulo por dia-do-mês
+  ago:[0,0.20,5.49,8.57,8.84,13.43,19.63,21.64,21.85,22.82,22.99,23.16,23.65],
+  set:[0,0.16,0.36,0.55,0.96,1.25,1.56,1.82,2.11,2.19]
+};
+const SKU = [ // Cloud Run, período
+  ["CPU Allocation Time","vCPU·s",  "1.06M", 0.62],
+  ["Memory Allocation Time","GiB·s","2.13M", 0.19],
+  ["Requests","1k req",             "48.2",  0.03],
+  ["Egress (América do Sul)","GiB", "0.14",  0.02]
+];
+const UNIT = [ // sku, uso, unidade, custo unit, custo
+  ["Cloud Run · CPU Allocation Time","1.06M","vCPU·s","R$ 0,00000058","R$ 0,62"],
+  ["Cloud Run · Memory Allocation Time","2.13M","GiB·s","R$ 0,00000009","R$ 0,19"],
+  ["BigQuery · Analysis","0.20","TiB","R$ 8,75","R$ 1,75"],
+  ["Secret Manager · Access operations","3.1M","10k ops","R$ 0,0051","R$ 1,57"],
+  ["Artifact Registry · Storage","0.11","GiB·mês","R$ 7,00","R$ 0,77"]
+];
+const ANOM = [
+  {date:"2026-08-25", svc:"Cloud Run", val:5.68, avg:0.46, z:4.1,
+   spark:[0.20,5.15,2.80,0.18,4.18,5.68,1.67,0.06,0.41,0.01,0.01,0.15,0.08,0.06,0.23,0.10,0.09,0.10,0.03,0.04,0.04,0.09,0.09,0.10,0.04,0.04,0.04,0.04,0.04,0.04], hi:5},
+  {date:"2026-08-21", svc:"Cloud Run", val:5.15, avg:0.42, z:3.7,
+   spark:[0,0,0,0,0,0,0,0,0,0,0.20,5.15,2.80,0.18,4.18,5.68,1.67,0.06,0.41,0.01,0.01,0.15,0.08,0.06,0.23,0.10,0.09,0.10,0.03,0.04], hi:11}
+];
+const COVERAGE = [["managed-by",0.10],["app",0.04],["environment",0.04]];
+
+const SVGNS="http://www.w3.org/2000/svg";
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function el(tag,attrs,parent){const e=document.createElementNS(SVGNS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e;}
+
+/* ================= tooltip ================= */
+const tt=document.getElementById("tt");
+function showTT(html,x,y){tt.innerHTML=html;tt.style.opacity="1";tt.style.left=(x+14)+"px";tt.style.top=(y+14)+"px";}
+function hideTT(){tt.style.opacity="0";}
+
+/* ================= scorecard ================= */
+function scorecard(){
+  const netMtd=2.19, prevMonth=23.65, runRate=netMtd/9*30, credits=-0.57, budget=50;
+  const usedPct=netMtd/budget*100, rrPct=runRate/budget*100;
+  const cards=[
+    {k:"Custo líquido · MTD", v:brl(netMtd), s:`<span class="mono">${usd(netMtd)}</span>`},
+    {k:"Run-rate fim de mês", v:brl(runRate), s:`projeção linear · 9 de 30 dias`},
+    {k:"Δ vs. mês anterior", v:`<span class="mono">${pct(runRate/prevMonth*100-100)}</span>`, s:`run-rate vs. <span class="mono">${brl(prevMonth)}</span> (ago, fechado)`, cls:"delta-down"},
+    {k:"Créditos no mês", v:brl(credits), s:`só <span class="mono">DISCOUNT</span> (Cloud Run)`},
+    {k:"Custo vs. orçamento", v:`<span class="mono">${usedPct.toLocaleString("pt-BR",{maximumFractionDigits:1})}%</span>`, s:`de <span class="mono">${brl(budget)}</span> · run-rate ${rrPct.toLocaleString("pt-BR",{maximumFractionDigits:1})}%`, flag:true,
+     extra:`<span class="chip ok">✓ dentro do orçamento</span><div class="bar-track"><div class="bar-fill" style="width:${Math.max(usedPct,1.5)}%"></div></div>`}
+  ];
+  document.getElementById("scorecard").innerHTML=cards.map(c=>`
+    <div class="tile${c.flag?' flag':''}">
+      <span class="k">${c.k}</span>
+      <span class="v ${c.cls||''}">${c.v}</span>
+      <span class="s">${c.s}</span>
+      ${c.extra||''}
+    </div>`).join("");
+}
+
+/* ================= área: custo diário + média móvel 7d ================= */
+function dailyChart(){
+  const host=document.getElementById("c-daily");
+  const W=680,H=210,P={t:14,r:14,b:26,l:44};
+  const data=DAILY.map(d=>d[1]);
+  const max=Math.ceil(Math.max(...data)); // 7
+  const x=i=>P.l+i*(W-P.l-P.r)/(data.length-1);
+  const y=v=>H-P.b-(v/max)*(H-P.t-P.b);
+  // média móvel 7d
+  const ma=data.map((_,i)=>{const s=data.slice(Math.max(0,i-6),i+1);return s.reduce((a,b)=>a+b,0)/s.length;});
+  const svg=el("svg",{class:"chart",viewBox:`0 0 ${W} ${H}`,role:"img","aria-label":"Custo líquido diário em reais, últimos 30 dias, com pico entre 21 e 26 de agosto"},host);
+  // grid + ticks y
+  for(let t=0;t<=max;t+=1){const yy=y(t);
+    el("line",{class:"tickline",x1:P.l,x2:W-P.r,y1:yy,y2:yy,opacity:t?.5:1},svg);
+    const tx=el("text",{x:P.l-8,y:yy+4,"text-anchor":"end","font-size":"10"},svg);tx.textContent="R$ "+t;}
+  // ticks x (a cada ~5)
+  DAILY.forEach((d,i)=>{if(i%5)return;const tx=el("text",{x:x(i),y:H-8,"text-anchor":"middle","font-size":"10"},svg);tx.textContent=d[0];});
+  // área
+  let dArea=`M${x(0)},${y(0)}`;data.forEach((v,i)=>dArea+=` L${x(i)},${y(v)}`);dArea+=` L${x(data.length-1)},${y(0)} Z`;
+  el("path",{d:dArea,fill:css("--c-net"),"fill-opacity":".14"},svg);
+  let dLine="";data.forEach((v,i)=>dLine+=(i?" L":"M")+x(i)+","+y(v));
+  el("path",{d:dLine,fill:"none",stroke:css("--c-net"),"stroke-width":"2","stroke-linejoin":"round"},svg);
+  // média móvel
+  let dMa="";ma.forEach((v,i)=>dMa+=(i?" L":"M")+x(i)+","+y(v));
+  el("path",{d:dMa,fill:"none",stroke:css("--c-other"),"stroke-width":"1.5","stroke-dasharray":"4 3"},svg);
+  // endpoint enfatizado
+  const li=data.length-1;
+  el("circle",{cx:x(li),cy:y(data[li]),r:"3.5",fill:css("--c-net"),stroke:css("--well"),"stroke-width":"1.5"},svg);
+  // hover
+  const hit=el("rect",{x:P.l,y:P.t,width:W-P.l-P.r,height:H-P.t-P.b,fill:"transparent"},svg);
+  const cross=el("line",{x1:0,x2:0,y1:P.t,y2:H-P.b,stroke:css("--ink-dim"),"stroke-width":"1",opacity:"0"},svg);
+  const dot=el("circle",{r:"4",fill:css("--c-net"),stroke:css("--surface"),"stroke-width":"2",opacity:"0"},svg);
+  hit.addEventListener("pointermove",ev=>{
+    const r=svg.getBoundingClientRect();const px=(ev.clientX-r.left)/r.width*W;
+    let i=Math.round((px-P.l)/((W-P.l-P.r)/(data.length-1)));i=Math.max(0,Math.min(data.length-1,i));
+    cross.setAttribute("x1",x(i));cross.setAttribute("x2",x(i));cross.setAttribute("opacity",".5");
+    dot.setAttribute("cx",x(i));dot.setAttribute("cy",y(data[i]));dot.setAttribute("opacity","1");
+    showTT(`<b>${DAILY[i][0]}/2026</b><br>líquido ${brl(data[i])}<br>média 7d ${brl(ma[i])}`,ev.clientX,ev.clientY);
+  });
+  hit.addEventListener("pointerleave",()=>{cross.setAttribute("opacity","0");dot.setAttribute("opacity","0");hideTT();});
+}
+
+/* ================= barras horizontais: serviços ================= */
+function servicesChart(){
+  const host=document.getElementById("c-services");
+  const max=SERVICES[0][1];
+  host.innerHTML=SERVICES.map(([n,v],i)=>{
+    const w=Math.max(v/max*100,0.6);
+    const col=i===0?css("--c-net"):(i===1?css("--c-alt"):css("--c-other"));
+    return `<div style="display:flex;align-items:center;gap:10px;margin:7px 0" data-svc="${n}" data-v="${v}">
+      <span style="flex:0 0 116px;font-size:12.5px;color:var(--ink-dim)">${n}</span>
+      <span style="flex:1;height:16px;background:var(--well);border-radius:3px;overflow:hidden">
+        <span style="display:block;height:100%;width:${w}%;background:${col};border-radius:0 3px 3px 0"></span></span>
+      <span class="mono" style="flex:0 0 62px;text-align:right;font-size:12.5px">${brl(v)}</span>
+    </div>`;
+  }).join("");
+  host.querySelectorAll("[data-svc]").forEach(r=>{
+    r.addEventListener("pointerenter",ev=>showTT(`<b>${r.dataset.svc}</b><br>${brl(+r.dataset.v)} · ${(r.dataset.v/26.41*100).toFixed(1)}%`,ev.clientX,ev.clientY));
+    r.addEventListener("pointermove",ev=>showTT(`<b>${r.dataset.svc}</b><br>${brl(+r.dataset.v)} · ${(r.dataset.v/26.41*100).toFixed(1)}%`,ev.clientX,ev.clientY));
+    r.addEventListener("pointerleave",hideTT);
+  });
+  document.getElementById("tbl-services").innerHTML=`<table class="datatable"><thead><tr><th>Serviço</th><th>Custo</th><th>% do total</th></tr></thead><tbody>${
+    SERVICES.map(([n,v])=>`<tr><td>${n}</td><td class="num">${brl(v)}</td><td class="num">${(v/26.41*100).toFixed(1)}%</td></tr>`).join("")
+  }</tbody></table>`;
+}
+
+/* ================= reconciliação ================= */
+function recon(){
+  const host=document.getElementById("recon");
+  const max=25;
+  host.innerHTML=MONTHS.map(m=>{
+    const g=Math.max(m.gross/max*100,0.4), c=Math.abs(m.cred)/max*100;
+    return `<div class="recon-row">
+      <span class="m">${m.m}</span>
+      <span class="recon-bar" title="bruto ${brl(m.gross)} · créditos ${brl(m.cred)}">
+        <i style="width:${g}%;background:${css('--c-net')}"></i>
+        <i style="width:${c}%;background:${css('--c-credit')}"></i>
+      </span>
+      <span class="val">${brl(m.net)}</span>
+      <span class="chip ok" style="justify-self:end">✓ bate</span>
+    </div>`;
+  }).join("");
+}
+
+/* ================= tendência: empilhado mensal ================= */
+function monthlyChart(){
+  const host=document.getElementById("c-monthly");
+  const W=680,H=220,P={t:14,r:14,b:28,l:44};
+  const max=25;
+  const bw=64, gap=(W-P.l-P.r-bw*3)/3;
+  const y=v=>H-P.b-(v/max)*(H-P.t-P.b);
+  const svg=el("svg",{class:"chart",viewBox:`0 0 ${W} ${H}`,role:"img","aria-label":"Custo líquido mensal empilhado por serviço"},host);
+  for(let t=0;t<=25;t+=5){const yy=y(t);el("line",{class:"tickline",x1:P.l,x2:W-P.r,y1:yy,y2:yy,opacity:t?.5:1},svg);
+    const tx=el("text",{x:P.l-8,y:yy+4,"text-anchor":"end","font-size":"10"},svg);tx.textContent="R$ "+t;}
+  MONTHS.forEach((m,i)=>{
+    const bx=P.l+gap/2+i*(bw+gap);
+    const segs=[["cr",css("--c-net")],["bq",css("--c-alt")],["ot",css("--c-other")]];
+    let acc=0;
+    segs.forEach(([key,col])=>{
+      const v=m[key]; if(v<=0){return;}
+      const y0=y(acc), y1=y(acc+v);
+      el("rect",{x:bx,y:y1,width:bw,height:Math.max(y0-y1-2,0),fill:col,rx:"1"},svg);
+      acc+=v;
+    });
+    const tx=el("text",{x:bx+bw/2,y:H-10,"text-anchor":"middle","font-size":"10.5"},svg);tx.textContent=m.m;
+    if(m.net>0){const vt=el("text",{x:bx+bw/2,y:y(m.net)-6,"text-anchor":"middle","font-size":"11",style:"fill:"+css("--ink")},svg);vt.textContent=brl(m.net);}
+  });
+  document.getElementById("lg-monthly").innerHTML=[
+    ["Cloud Run",css("--c-net")],["BigQuery",css("--c-alt")],["Outros",css("--c-other")]
+  ].map(([n,c])=>`<span><i class="swatch" style="background:${c}"></i>${n}</span>`).join("");
+}
+
+/* ================= tendência: Δ MoM ================= */
+function momChart(){
+  const host=document.getElementById("c-mom");
+  const W=340,H=200,P={t:16,r:14,b:28,l:40};
+  const bars=[{m:"ago/26",v:23.65,ghost:null},{m:"set/26",v:2.19,ghost:7.30}];
+  const max=25;
+  const y=v=>H-P.b-(v/max)*(H-P.t-P.b);
+  const bw=54, gap=(W-P.l-P.r-bw*2)/2;
+  const svg=el("svg",{class:"chart",viewBox:`0 0 ${W} ${H}`,role:"img","aria-label":"Variação mês a mês do custo líquido"},host);
+  for(let t=0;t<=25;t+=5){const yy=y(t);el("line",{class:"tickline",x1:P.l,x2:W-P.r,y1:yy,y2:yy,opacity:t?.5:1},svg);
+    const tx=el("text",{x:P.l-8,y:yy+4,"text-anchor":"end","font-size":"10"},svg);tx.textContent=t;}
+  bars.forEach((b,i)=>{
+    const bx=P.l+gap/2+i*(bw+gap);
+    if(b.ghost){el("rect",{x:bx,y:y(b.ghost),width:bw,height:y(0)-y(b.ghost),fill:"none",stroke:css("--c-net"),"stroke-width":"1.5","stroke-dasharray":"3 3",rx:"1"},svg);
+      const gt=el("text",{x:bx+bw/2,y:y(b.ghost)-6,"text-anchor":"middle","font-size":"10",fill:css("--ink-dim")},svg);gt.textContent="run-rate "+brl(b.ghost);}
+    el("rect",{x:bx,y:y(b.v),width:bw,height:y(0)-y(b.v),fill:css("--c-net"),rx:"1"},svg);
+    const tx=el("text",{x:bx+bw/2,y:H-10,"text-anchor":"middle","font-size":"10.5"},svg);tx.textContent=b.m;
+    const vt=el("text",{x:bx+bw/2,y:y(b.v)+(b.v>5?14:-6),"text-anchor":"middle","font-size":"10.5",style:"fill:"+(b.v>5?"#fff":css("--ink"))},svg);vt.textContent=brl(b.v);
+  });
+  const dt=el("text",{x:W-P.r,y:P.t+2,"text-anchor":"end","font-size":"11",style:"fill:"+css("--ok")},svg);
+  dt.textContent="Δ −90,7% (realizado MTD)";
+}
+
+/* ================= tendência: pace acumulado ================= */
+function paceChart(){
+  const host=document.getElementById("c-pace");
+  const W=340,H=200,P={t:14,r:14,b:26,l:40};
+  const max=25, days=13;
+  const x=i=>P.l+i*(W-P.l-P.r)/(days-1);
+  const y=v=>H-P.b-(v/max)*(H-P.t-P.b);
+  const svg=el("svg",{class:"chart",viewBox:`0 0 ${W} ${H}`,role:"img","aria-label":"Acúmulo diário: setembro versus agosto"},host);
+  for(let t=0;t<=25;t+=5){const yy=y(t);el("line",{class:"tickline",x1:P.l,x2:W-P.r,y1:yy,y2:yy,opacity:t?.5:1},svg);
+    const tx=el("text",{x:P.l-8,y:yy+4,"text-anchor":"end","font-size":"10"},svg);tx.textContent=t;}
+  [4,8,12].forEach(i=>{const tx=el("text",{x:x(i),y:H-8,"text-anchor":"middle","font-size":"10"},svg);tx.textContent="dia "+(i+1);});
+  const draw=(arr,col,dash)=>{let d="";arr.forEach((v,i)=>d+=(i?" L":"M")+x(i)+","+y(v));
+    el("path",{d,fill:"none",stroke:col,"stroke-width":"2",...(dash?{"stroke-dasharray":"4 3"}:{})},svg);};
+  draw(PACE.ago,css("--c-other"),true);
+  draw(PACE.set,css("--c-net"),false);
+  el("circle",{cx:x(PACE.set.length-1),cy:y(PACE.set.at(-1)),r:"3.5",fill:css("--c-net"),stroke:css("--well"),"stroke-width":"1.5"},svg);
+  const l1=el("text",{x:x(12),y:y(PACE.ago[12])-6,"text-anchor":"end","font-size":"10"},svg);l1.textContent="ago";
+  const l2=el("text",{x:x(9)+6,y:y(PACE.set.at(-1))-2,"font-size":"10",style:"fill:"+css("--c-net")},svg);l2.textContent="set (MTD)";
+}
+
+/* ================= serviços & SKUs ================= */
+function skuChart(){
+  const host=document.getElementById("c-sku");
+  const max=SKU[0][3];
+  host.innerHTML=`<div style="font-size:12.5px;color:var(--ink-dim);margin-bottom:4px">Cloud Run — <span class="mono">${brl(0.86)}</span> no período</div>`+
+   SKU.map(([n,u,q,v])=>{
+    const w=Math.max(v/max*100,1);
+    return `<div style="display:flex;align-items:center;gap:10px;margin:6px 0 6px 14px">
+      <span style="flex:0 0 190px;font-size:12.5px">${n} <span class="mono" style="color:var(--ink-mute);font-size:11px">${q} ${u}</span></span>
+      <span style="flex:1;height:14px;background:var(--well);border-radius:3px;overflow:hidden">
+        <span style="display:block;height:100%;width:${w}%;background:${css('--c-net')}"></span></span>
+      <span class="mono" style="flex:0 0 58px;text-align:right;font-size:12px">${brl(v)}</span>
+    </div>`;
+  }).join("");
+  document.getElementById("tbl-unit").innerHTML=`<table class="datatable"><thead><tr><th>SKU</th><th>Uso</th><th>Unid.</th><th>Custo unit.</th><th>Custo</th></tr></thead><tbody>${
+    UNIT.map(r=>`<tr><td>${r[0]}</td><td class="num">${r[1]}</td><td>${r[2]}</td><td class="num">${r[3]}</td><td class="num">${r[4]}</td></tr>`).join("")
+  }</tbody></table>`;
+}
+
+/* ================= anomalias ================= */
+function anomList(){
+  const host=document.getElementById("anom-list");
+  host.innerHTML=ANOM.map(a=>{
+    const W=220,H=44,mx=Math.max(...a.spark);
+    const x=i=>2+i*(W-4)/(a.spark.length-1), y=v=>H-3-(v/mx)*(H-8);
+    let d="";a.spark.forEach((v,i)=>d+=(i?" L":"M")+x(i).toFixed(1)+","+y(v).toFixed(1));
+    return `<div style="display:grid;grid-template-columns:96px 1fr 230px;gap:16px;align-items:center;padding:12px 0;border-bottom:1px solid var(--hair)">
+      <div><div class="mono" style="font-size:13px;font-weight:700">${a.date.slice(5)}</div><div style="font-size:11px;color:var(--ink-mute)">${a.date.slice(0,4)}</div></div>
+      <div>
+        <div style="font-size:13.5px">${a.svc} · <span class="mono" style="font-weight:700">${brl(a.val)}</span>
+          <span class="chip bad" style="margin-left:6px">z ${a.z.toLocaleString("pt-BR",{minimumFractionDigits:1})}</span></div>
+        <div style="font-size:12px;color:var(--ink-dim)">média 28d <span class="mono">${brl(a.avg)}</span> · desvio <span class="mono">${brl(a.val-a.avg)}</span> (${((a.val/a.avg-1)*100).toFixed(0)}%)</div>
+      </div>
+      <svg viewBox="0 0 ${W} ${H}" style="width:230px;height:44px" aria-hidden="true">
+        <path d="${d}" fill="none" stroke="${css('--c-net')}" stroke-width="1.5"/>
+        <circle cx="${x(a.hi).toFixed(1)}" cy="${y(a.spark[a.hi]).toFixed(1)}" r="3.2" fill="${css('--c-alert')}"/>
+      </svg>
+    </div>`;
+  }).join("");
+}
+
+/* ================= showback: cobertura ================= */
+function coverageChart(){
+  const host=document.getElementById("c-coverage");
+  host.innerHTML=COVERAGE.map(([k,v])=>{
+    const R=26,C=2*Math.PI*R, off=C*(1-v);
+    return `<div style="display:inline-flex;flex-direction:column;align-items:center;gap:6px;margin:6px 22px 6px 0">
+      <svg viewBox="0 0 64 64" style="width:64px;height:64px" aria-hidden="true">
+        <circle cx="32" cy="32" r="${R}" fill="none" stroke="${css('--well')}" stroke-width="8"/>
+        <circle cx="32" cy="32" r="${R}" fill="none" stroke="${css('--c-net')}" stroke-width="8"
+          stroke-dasharray="${C}" stroke-dashoffset="${off}" transform="rotate(-90 32 32)" stroke-linecap="butt"/>
+      </svg>
+      <span class="mono" style="font-weight:700;font-size:15px">${(v*100).toFixed(0)}%</span>
+      <span style="font-size:11.5px;color:var(--ink-dim)">${k}</span>
+    </div>`;
+  }).join("")+`<p class="cap" style="margin-top:8px">Do custo total de <span class="mono">${brl(26.41)}</span>: <span class="mono">${brl(2.63)}</span> com <span class="mono">managed-by</span>, <span class="mono">${brl(1.07)}</span> com <span class="mono">app</span>, <span class="mono">${brl(1.10)}</span> com <span class="mono">environment</span>.</p>`;
+}
+
+/* ================= tabs ================= */
+const tabs=[...document.querySelectorAll('.tab')];
+const panels=Object.fromEntries([...document.querySelectorAll('.panel')].map(p=>[p.id,p]));
+tabs.forEach(t=>t.addEventListener('click',()=>{
+  tabs.forEach(x=>x.setAttribute('aria-selected',x===t));
+  for(const id in panels)panels[id].hidden=(panels[id]!==panels[t.getAttribute('aria-controls')]);
+  window.scrollTo({top:0,behavior:'instant'});
+}));
+tabs.forEach((t,i)=>t.addEventListener('keydown',e=>{
+  if(e.key!=='ArrowRight'&&e.key!=='ArrowLeft')return;
+  e.preventDefault();const n=(i+(e.key==='ArrowRight'?1:tabs.length-1))%tabs.length;tabs[n].focus();tabs[n].click();
+}));
+
+/* ================= toggle tabela ================= */
+document.querySelectorAll('.toggle-tbl').forEach(b=>b.addEventListener('click',()=>{
+  const t=document.getElementById(b.dataset.target);const open=t.hidden;
+  t.hidden=!open;b.setAttribute('aria-expanded',String(open));b.textContent=open?'Ocultar tabela':'Ver tabela';
+}));
+
+/* ================= tema ================= */
+const root=document.documentElement;
+function applyTheme(mode){
+  if(mode)root.setAttribute('data-theme',mode); else root.removeAttribute('data-theme');
+  try{mode?localStorage.setItem('pcm-theme',mode):localStorage.removeItem('pcm-theme');}catch(e){}
+  renderAll();
+}
+try{const s=localStorage.getItem('pcm-theme');if(s)root.setAttribute('data-theme',s);}catch(e){}
+document.getElementById('themeBtn').addEventListener('click',()=>{
+  const cur=root.getAttribute('data-theme');
+  const sysDark=matchMedia('(prefers-color-scheme:dark)').matches;
+  applyTheme(cur? (cur==='dark'?'light':'dark') : (sysDark?'light':'dark'));
+});
+
+/* ================= render ================= */
+function renderAll(){
+  scorecard();
+  document.getElementById('c-daily').innerHTML='';dailyChart();
+  servicesChart(); recon();
+  document.getElementById('c-monthly').innerHTML='';monthlyChart();
+  document.getElementById('c-mom').innerHTML='';momChart();
+  document.getElementById('c-pace').innerHTML='';paceChart();
+  skuChart(); anomList(); coverageChart();
+}
+renderAll();
+matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>{if(!root.getAttribute('data-theme'))renderAll();});
+</script>
+</body>
+</html>
