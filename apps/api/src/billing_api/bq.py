@@ -37,7 +37,7 @@ def mock_active() -> bool:
     try:
         _get_client()
         _mock_active = False
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log.warning("BigQuery indisponivel (%s) — modo mock ligado", exc)
         _mock_active = True
     return _mock_active

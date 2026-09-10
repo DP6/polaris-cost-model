@@ -22,7 +22,7 @@ app.add_middleware(
 
 
 @app.exception_handler(Exception)
-async def _unhandled(_: Request, exc: Exception) -> JSONResponse:  # noqa: D401
+async def _unhandled(_: Request, exc: Exception) -> JSONResponse:
     logging.exception("erro nao tratado")
     return JSONResponse(status_code=500, content={"error": {"code": "internal", "message": str(exc)}})
 
@@ -43,6 +43,6 @@ async def _data_freshness_header(request: Request, call_next):
             from .routes import meta
 
             resp.headers["X-Data-Updated-At"] = meta().data_updated_at
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
     return resp
