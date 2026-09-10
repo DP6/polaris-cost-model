@@ -30,12 +30,8 @@ variable "git_commitish" {
   default = "develop" # dev compila a branch develop; prod compila main
 }
 
-# imagens: no 1o apply usa o hello (placeholder); o CI faz o deploy real e o TF ignora `image`
+# imagem: no 1o apply usa o hello (placeholder); o CI faz o deploy real e o TF ignora `image`
 variable "api_image" {
-  type    = string
-  default = "us-docker.pkg.dev/cloudrun/container/hello"
-}
-variable "web_image" {
   type    = string
   default = "us-docker.pkg.dev/cloudrun/container/hello"
 }

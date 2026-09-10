@@ -31,6 +31,10 @@ class Settings(BaseSettings):
     # confia no header do IAP (em prod). Em dev fica vazio.
     iap_audience: str = ""
 
+    # dir do build do SPA (apps/web). Vazio em dev local (Vite serve o front);
+    # a imagem seta BILLING_API_STATIC_DIR=/app/static.
+    static_dir: str = ""
+
     @property
     def rpt(self) -> str:
         return f"`{self.gcp_project}.{self.reporting_dataset}`"

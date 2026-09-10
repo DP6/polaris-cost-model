@@ -1,8 +1,10 @@
 import logging
+from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from .bq import mock_active
 from .config import get_settings
@@ -46,3 +48,20 @@ async def _data_freshness_header(request: Request, call_next):
         except Exception:
             pass
     return resp
+
+
+# SPA: o build do apps/web e copiado para BILLING_API_STATIC_DIR (/app/static na imagem).
+# Serve os assets e faz fallback de qualquer rota nao-/api para index.html (react-router).
+# Em dev local a var fica vazia e o Vite serve o front.
+_static = Path(S.static_dir) if S.static_dir else None
+if _static and (_static / "index.html").is_file():
+    app.mount("/assets", StaticFiles(directory=_static / "assets"), name="assets")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    def _spa(full_path: str) -> FileResponse:
+        if full_path.startswith(("api/", "healthz")):
+            raise HTTPException(status_code=404)
+        candidate = _static / full_path
+        if full_path and candidate.is_file():
+            return FileResponse(candidate)
+        return FileResponse(_static / "index.html")

@@ -28,22 +28,7 @@ module "api" {
   }
 }
 
-module "web" {
-  source = "../../modules/app_service"
-
-  project_id     = var.project_id
-  project_number = var.project_number
-  region         = var.region
-  env            = local.env
-
-  name            = "billing-web"
-  image           = var.web_image
-  allowed_members = var.iap_allowed_members
-
-  env_vars = {
-    API_UPSTREAM = module.api.uri
-  }
-}
+# Servico unico (ver dev/main.tf e ADR-008): a imagem da API embute o SPA.
 
 module "data_stack" {
   source = "../../modules/data_stack"

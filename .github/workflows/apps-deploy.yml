@@ -19,12 +19,6 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - { app: billing-api, dir: apps/api }
-          - { app: billing-web, dir: apps/web }
     steps:
       - uses: actions/checkout@v4
 
@@ -38,17 +32,18 @@ jobs:
       - name: docker auth
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
+      # servico unico: a imagem da API ja embute o build do SPA (apps/web).
+      # contexto = raiz do repo para o Dockerfile enxergar apps/web e apps/api.
       - name: build & push
         run: |
-          IMG="${AR}/${{ matrix.app }}:${GITHUB_SHA::12}"
-          docker build -t "$IMG" "${{ matrix.dir }}"
+          IMG="${AR}/billing-api:${GITHUB_SHA::12}"
+          docker build -f apps/api/Dockerfile -t "$IMG" .
           docker push "$IMG"
           echo "IMG=$IMG" >> "$GITHUB_ENV"
 
       # So dev por ora: environments/prod ainda nao foi aplicado (terraform-apply
-      # roda matrix [dev]). Quando prod entrar, voltar o loop para `dev prod` --
-      # dev e prod compartilham a mesma imagem (o isolamento e dataset/servico).
+      # roda matrix [dev]). Quando prod entrar, deployar billing-api-prod tambem.
       - name: deploy dev
         run: |
-          gcloud run deploy "${{ matrix.app }}-dev" \
+          gcloud run deploy billing-api-dev \
             --region "$REGION" --image "$IMG" --quiet
