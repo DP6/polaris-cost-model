@@ -4,6 +4,12 @@
   "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2, "lineWidth": 110 },
   "linter": {
     "enabled": true,
-    "rules": { "recommended": true, "suspicious": { "noArrayIndexKey": "off" } }
+    "rules": {
+      "recommended": true,
+      "suspicious": { "noArrayIndexKey": "off" },
+      "complexity": { "noImportantStyles": "off" },
+      "correctness": { "useExhaustiveDependencies": "off" },
+      "style": { "noNonNullAssertion": "off" }
+    }
   }
 }

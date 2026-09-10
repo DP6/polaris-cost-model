@@ -6,6 +6,7 @@ on:
     paths:
       - "apps/**"
       - ".github/workflows/apps-deploy.yml"
+  workflow_dispatch: {}
 
 permissions:
   contents: read
@@ -44,10 +45,10 @@ jobs:
           docker push "$IMG"
           echo "IMG=$IMG" >> "$GITHUB_ENV"
 
-      # dev e prod compartilham a mesma imagem (o isolamento e dataset/servico, nao imagem)
-      - name: deploy dev + prod
+      # So dev por ora: environments/prod ainda nao foi aplicado (terraform-apply
+      # roda matrix [dev]). Quando prod entrar, voltar o loop para `dev prod` --
+      # dev e prod compartilham a mesma imagem (o isolamento e dataset/servico).
+      - name: deploy dev
         run: |
-          for ENV in dev prod; do
-            gcloud run deploy "${{ matrix.app }}-${ENV}" \
-              --region "$REGION" --image "$IMG" --quiet
-          done
+          gcloud run deploy "${{ matrix.app }}-dev" \
+            --region "$REGION" --image "$IMG" --quiet
