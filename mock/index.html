@@ -8,42 +8,31 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&family=Ubuntu+Mono:wght@400;700&display=swap">
 <style>
-/* ============ DP6 Design System — tokens (espelho de polaris-heap/DP6-Design-System.md) ============ */
+/* ============ DP6 Design System — tokens (espelho de apps/web/src/index.css / atlas) ============
+   Dark é o padrão. :root = claro; [data-theme="dark"] = escuro (o mock usa atributo; o app usa
+   classe .dark). Sem @media prefers-color-scheme — tema sempre explícito. ============ */
 :root{
-  --bg:#fcfcfb; --surface:#ffffff; --well:#f4f1ea;
-  --ink:#1d1d1b; --ink-dim:#5b626c; --ink-mute:#8b9099;
-  --hair:#e7e3d8; --hair-strong:#d8d3c4;
-  --accent:#ffb302; --accent-press:#c98a00;
-  /* paleta de gráficos DP6 — light. azul/verde validados p/ CVD; roxo/rosa reservados; vermelho = status */
+  --bg:#fafaf8; --surface:#f0efec; --well:#e9e9e6;
+  --ink:#1d1d1b; --ink-dim:#555b62; --ink-mute:#7c8188;
+  --hair:#dedcda; --hair-strong:#cfccc7;
+  --accent:#ffb302; --accent-press:#c98a00; --accent-2:#ffca45;
   --c-net:#1a365d; --c-alt:#059669; --c-other:#8a8f96;
-  --c-alert:#d64500; --c-credit:#6b46c1;
-  --ok:#059669; --warn:#b7791f; --bad:#d64500;
+  --c-alert:#c1291f; --c-credit:#6b46c1;
+  --ok:#0b7a43; --warn:#8a5700; --bad:#c1291f;
   --focus:rgba(255,179,2,.45);
-  --shadow-md:0 2px 10px rgba(29,29,27,.08);
-}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]){
-    --bg:#1d1d1b; --surface:#242422; --well:#1a1a19;
-    --ink:#f2f1ec; --ink-dim:#a7abb0; --ink-mute:#7c8188;
-    --hair:#37372f; --hair-strong:#454439;
-    --accent:#ffb302; --accent-press:#ffca4d;
-    --c-net:#63b3ed; --c-alt:#34d399; --c-other:#6b7078;
-    --c-alert:#e53e3e; --c-credit:#b794f4;
-    --ok:#34d399; --warn:#e0a94a; --bad:#e53e3e;
-    --focus:rgba(255,179,2,.5);
-    --shadow-md:0 2px 12px rgba(0,0,0,.4);
-  }
+  --shadow-md:0 1px 2px rgb(0 0 0/.06),0 2px 8px rgb(0 0 0/.08);
+  --radius:5px;
 }
 :root[data-theme="dark"]{
-  --bg:#1d1d1b; --surface:#242422; --well:#1a1a19;
-  --ink:#f2f1ec; --ink-dim:#a7abb0; --ink-mute:#7c8188;
-  --hair:#37372f; --hair-strong:#454439;
-  --accent:#ffb302; --accent-press:#ffca4d;
+  --bg:#1d1d1b; --surface:#2a2a28; --well:#3a3a38;
+  --ink:#ffffff; --ink-dim:#8f96a1; --ink-mute:#7c8188;
+  --hair:#3a3a38; --hair-strong:#4a4a45;
+  --accent:#ffb302; --accent-press:#ffca4d; --accent-2:#ffca45;
   --c-net:#63b3ed; --c-alt:#34d399; --c-other:#6b7078;
-  --c-alert:#e53e3e; --c-credit:#b794f4;
-  --ok:#34d399; --warn:#e0a94a; --bad:#e53e3e;
+  --c-alert:#f87171; --c-credit:#b794f4;
+  --ok:#34d399; --warn:#ffb302; --bad:#f87171;
   --focus:rgba(255,179,2,.5);
-  --shadow-md:0 2px 12px rgba(0,0,0,.4);
+  --shadow-md:0 4px 12px rgb(0 0 0/.4);
 }
 
 *{box-sizing:border-box}
@@ -110,14 +99,16 @@ main{max-width:1180px; margin:0 auto; padding:28px}
 
 /* ============ cards & tiles ============ */
 .card{
-  background:var(--surface); border:1px solid var(--hair); border-radius:8px; padding:22px;
+  background:var(--surface); border:1px solid var(--hair); border-radius:var(--radius); padding:22px;
 }
 .card > h3{font-size:15px}
 .card .cap{margin:2px 0 0; color:var(--ink-mute); font-size:12.5px}
 .grid{display:grid; gap:16px}
 
-.scorecard{grid-template-columns:repeat(auto-fit,minmax(188px,1fr))}
-.tile{background:var(--surface); border:1px solid var(--hair); border-radius:8px; padding:16px 16px 15px; display:flex; flex-direction:column; gap:7px}
+.scorecard{grid-template-columns:repeat(6,1fr)}
+@media (max-width:1080px){.scorecard{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:620px){.scorecard{grid-template-columns:repeat(2,1fr)}}
+.tile{background:var(--surface); border:1px solid var(--hair); border-radius:var(--radius); padding:16px 16px 15px; display:flex; flex-direction:column; gap:7px}
 .tile.flag{border-top:2px solid var(--accent)}
 .tile .k{font:500 10px/1.3 Ubuntu,sans-serif; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-dim)}
 .tile .v{font-family:"Ubuntu Mono",monospace; font-weight:700; font-size:27px; letter-spacing:-.02em; line-height:1.05}
@@ -169,7 +160,7 @@ svg.chart{display:block; width:100%; height:auto; font-family:"Ubuntu Mono",mono
 .callout{display:flex; gap:12px; padding:14px 16px; background:var(--well); border:1px solid var(--hair); border-left:2px solid var(--accent); border-radius:6px; font-size:13.5px}
 .callout b{font-weight:500}
 
-.placeholder{text-align:center; padding:40px 24px; border:1px dashed var(--hair-strong); border-radius:8px; background:var(--well)}
+.placeholder{text-align:center; padding:40px 24px; border:1px dashed var(--hair-strong); border-radius:var(--radius); background:var(--well)}
 .placeholder h3{font-size:20px; font-weight:300; letter-spacing:-.02em}
 .placeholder p{margin:8px auto 0; max-width:52ch; color:var(--ink-dim); font-size:13.5px}
 
@@ -196,22 +187,25 @@ footer b{color:#d9d6cc; font-weight:400}
 
 <div class="filters">
   <div class="field"><label for="f-period">Período</label>
-    <select id="f-period"><option>Últimos 30 dias</option><option>Últimos 60 dias</option><option>Mês corrente</option><option>Tudo</option></select></div>
+    <select id="f-period"><option>Mês corrente</option><option>Últimos 30 dias</option><option>Últimos 90 dias</option><option>Este ano</option><option>Personalizado</option></select></div>
+  <div class="field"><label for="f-svc">Serviço</label>
+    <select id="f-svc"><option>Todos</option><option>Cloud Run</option><option>BigQuery</option><option>Secret Manager</option></select></div>
   <div class="field"><label for="f-env">Ambiente</label>
     <select id="f-env"><option>Todos</option><option>prod</option><option>dev</option></select></div>
   <div class="field"><label for="f-app">App</label>
-    <select id="f-app"><option>Todos</option><option>atlas</option><option>polaris-cost-control</option><option>observability-hub</option></select></div>
+    <select id="f-app"><option>Todos</option><option>atlas</option><option>polaris-cost-control</option></select></div>
   <div class="field"><label for="f-cur">Moeda</label>
     <select id="f-cur"><option>BRL</option><option>USD</option></select></div>
-  <p class="note">Filtros ilustrativos — este é um mock de referência, sem back-end.</p>
+  <p class="note">Mock de referência (specs/005), sem back-end. Widgets mês-âncora ignoram o Período; respeitam Serviço/Ambiente/App.</p>
 </div>
 
 <nav class="tabs" role="tablist" aria-label="Seções">
   <button class="tab" role="tab" aria-selected="true"  aria-controls="p-visao"  id="t-visao">Visão geral</button>
   <button class="tab" role="tab" aria-selected="false" aria-controls="p-tend"   id="t-tend">Tendência</button>
   <button class="tab" role="tab" aria-selected="false" aria-controls="p-skus"   id="t-skus">Serviços &amp; SKUs</button>
+  <button class="tab" role="tab" aria-selected="false" aria-controls="p-aloc"   id="t-aloc">Alocação &amp; showback</button>
+  <button class="tab" role="tab" aria-selected="false" aria-controls="p-efic"   id="t-efic">Eficiência &amp; economia</button>
   <button class="tab" role="tab" aria-selected="false" aria-controls="p-anom"   id="t-anom">Anomalias</button>
-  <button class="tab" role="tab" aria-selected="false" aria-controls="p-show"   id="t-show">Showback</button>
 </nav>
 
 <main>
@@ -245,6 +239,67 @@ footer b{color:#d9d6cc; font-weight:400}
       <h3>Reconciliação com a fatura</h3>
       <p class="cap">net = custo bruto + créditos. Cada mês confere com o relatório de faturamento do console.</p>
       <div id="recon" style="margin-top:8px"></div>
+    </div>
+
+    <!-- Orçamento do mês (ex-aba Orçamento, agora seção da Visão Geral — specs/005 §1) -->
+    <div style="display:flex;flex-direction:column;gap:3px;margin-top:6px">
+      <span class="eyebrow">Orçamento do mês · R$ 20,00</span>
+      <h2 style="font-size:18px">Orçamento &amp; previsão</h2>
+    </div>
+
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
+      <div class="tile"><span class="k">Consumido · MTD</span><span class="v">R$ 2,19</span><span class="s">11% de R$ 20,00</span></div>
+      <div class="tile"><span class="k">Projeção fim de mês</span><span class="v">R$ 7,30</span><span class="s">37% · run-rate linear</span></div>
+      <div class="tile"><span class="k">Folga projetada</span><span class="v">R$ 12,70</span><span class="s">orçamento − projeção</span></div>
+      <div class="tile"><span class="k">Estouro projetado</span><span class="v" style="font-size:19px">sem estouro</span><span class="s">no ritmo atual</span></div>
+    </div>
+
+    <div class="row-2">
+      <div class="card">
+        <h3>Consumo acumulado vs. orçamento</h3>
+        <p class="cap">Linha cheia = realizado (MTD) · tracejada = projeção linear até o fim do mês. Faixas 50/80/100/120%.</p>
+        <div class="chartwrap">
+          <svg class="chart" viewBox="0 0 420 210" role="img" aria-label="Consumo acumulado do mês versus orçamento">
+            <line class="tickline" x1="40" y1="24"  x2="410" y2="24"/><text x="34" y="27" text-anchor="end" font-size="9">120% R$24</text>
+            <line class="tickline" x1="40" y1="54"  x2="410" y2="54"/><text x="34" y="57" text-anchor="end" font-size="9">100% R$20</text>
+            <line class="tickline" x1="40" y1="90"  x2="410" y2="90"/><text x="34" y="93" text-anchor="end" font-size="9">80% R$16</text>
+            <line class="tickline" x1="40" y1="132" x2="410" y2="132"/><text x="34" y="135" text-anchor="end" font-size="9">50% R$10</text>
+            <line class="axis" x1="40" y1="180" x2="410" y2="180"/>
+            <path d="M40,180 L86,178 L133,176 L179,173 L226,170 L272,169 L294,167" fill="none" stroke="var(--c-net)" stroke-width="2"/>
+            <path d="M294,167 L410,120" fill="none" stroke="var(--c-net)" stroke-width="1.5" stroke-dasharray="4 3"/>
+            <circle cx="294" cy="167" r="3.2" fill="var(--c-net)"/>
+            <text x="40"  y="196" text-anchor="middle" font-size="9">dia 1</text>
+            <text x="294" y="196" text-anchor="middle" font-size="9">dia 9 (hoje)</text>
+            <text x="410" y="196" text-anchor="end"    font-size="9">dia 30</text>
+          </svg>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Escada de thresholds</h3>
+        <p class="cap">Marcador na projeção de fim de mês (37%).</p>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+          <div style="display:flex;align-items:center;gap:8px"><span class="mono" style="flex:0 0 96px;font-size:12px;color:var(--ink-dim)">50% · R$10</span><span class="bar-track" style="flex:1;height:10px"><span class="bar-fill" style="width:74%;background:var(--c-alt)"></span></span></div>
+          <div style="display:flex;align-items:center;gap:8px"><span class="mono" style="flex:0 0 96px;font-size:12px;color:var(--ink-dim)">80% · R$16</span><span class="bar-track" style="flex:1;height:10px"><span class="bar-fill" style="width:46%;background:var(--c-alt)"></span></span></div>
+          <div style="display:flex;align-items:center;gap:8px"><span class="mono" style="flex:0 0 96px;font-size:12px;color:var(--ink)">100% · R$20 <span style="color:var(--accent)">◀ 37%</span></span><span class="bar-track" style="flex:1;height:10px"><span class="bar-fill" style="width:37%;background:var(--accent)"></span></span></div>
+          <div style="display:flex;align-items:center;gap:8px"><span class="mono" style="flex:0 0 96px;font-size:12px;color:var(--ink-dim)">120% · R$24</span><span class="bar-track" style="flex:1;height:10px"><span class="bar-fill" style="width:31%;background:var(--c-other)"></span></span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Previsão — próximos 3 meses</h3>
+      <p class="cap">Barra = estimativa de tendência · linha vertical = faixa. Agosto foi atípico; incerteza alta.</p>
+      <div class="chartwrap">
+        <svg class="chart" viewBox="0 0 420 170" role="img" aria-label="Previsão dos próximos três meses com faixa de incerteza">
+          <line class="axis" x1="36" y1="140" x2="410" y2="140"/>
+          <g font-size="9" text-anchor="middle">
+            <rect x="70"  y="104" width="44" height="36" fill="var(--c-net)" rx="1"/><line x1="92"  y1="60"  x2="92"  y2="128" stroke="var(--ink-dim)" stroke-width="1.5"/><text x="92"  y="98">R$ 9</text><text x="92"  y="156">out · R$5–16</text>
+            <rect x="188" y="98"  width="44" height="42" fill="var(--c-net)" rx="1"/><line x1="210" y1="48"  x2="210" y2="128" stroke="var(--ink-dim)" stroke-width="1.5"/><text x="210" y="92">R$ 10</text><text x="210" y="156">nov · R$5–20</text>
+            <rect x="306" y="92"  width="44" height="48" fill="var(--c-net)" rx="1"/><line x1="328" y1="40"  x2="328" y2="128" stroke="var(--ink-dim)" stroke-width="1.5"/><text x="328" y="86">R$ 11</text><text x="328" y="156">dez · R$6–22</text>
+          </g>
+        </svg>
+      </div>
+      <div class="callout" style="margin-top:10px"><span aria-hidden="true">◆</span><span>Só 3 meses de histórico e agosto foi um mês de deploy/carga atípico — a faixa da previsão é larga de propósito. Recalibra sozinha conforme o histórico cresce.</span></div>
     </div>
   </section>
 
@@ -317,31 +372,171 @@ footer b{color:#d9d6cc; font-weight:400}
     </div>
   </section>
 
-  <!-- ============ SHOWBACK ============ -->
-  <section class="panel" id="p-show" role="tabpanel" aria-labelledby="t-show" hidden>
+  <!-- ============ ALOCAÇÃO & SHOWBACK ============ -->
+  <section class="panel" id="p-aloc" role="tabpanel" aria-labelledby="t-aloc" hidden>
     <header>
       <span class="eyebrow">Rateio por app / ambiente</span>
-      <h1 style="font-size:22px">Showback</h1>
-      <p>Depende das labels <span class="mono">app</span> / <span class="mono">environment</span> / <span class="mono">managed-by</span> nos recursos.</p>
+      <h1 style="font-size:22px">Alocação &amp; showback</h1>
+      <p>De quem é o custo? A tela mostra a <b>progressão</b> da cobertura de label e a prontidão para chargeback — o rateio final ainda não é confiável.</p>
     </header>
 
-    <div class="placeholder">
-      <h3>Aguardando aplicação das labels</h3>
-      <p>Hoje só 4–10% do custo carrega label (rollout iniciado em 26/08, ver <span class="mono">atlas/docs/finops-labels.md</span>). Enquanto a cobertura não sobe, o rateio por app×ambiente fica desativado — só a cobertura é exibida.</p>
+    <div class="callout"><span aria-hidden="true">▲</span><span><b>Cobertura de label 4–10% do custo.</b> O rateio abaixo cobre só a fração já rotulada — não use para chargeback ainda.</span></div>
+
+    <div class="card">
+      <h3>Cobertura de label · por custo</h3>
+      <p class="cap">Fração do custo líquido total (<span class="mono">R$ 26,41</span>) com cada chave preenchida.</p>
+      <div id="c-coverage" style="margin-top:10px"></div>
+    </div>
+
+    <div class="row-2">
+      <div class="card">
+        <h3>Progressão da cobertura (por semana)</h3>
+        <p class="cap">A curva sobe conforme as labels são aplicadas aos recursos (rollout desde 26/08).</p>
+        <div class="chartwrap">
+          <svg class="chart" viewBox="0 0 380 170" role="img" aria-label="Progressão semanal da cobertura de label">
+            <line class="tickline" x1="34" y1="30" x2="370" y2="30"/><text x="28" y="33" text-anchor="end" font-size="9">15%</text>
+            <line class="axis" x1="34" y1="140" x2="370" y2="140"/><text x="28" y="143" text-anchor="end" font-size="9">0%</text>
+            <path d="M34,140 L146,140 L258,116 L370,100" fill="none" stroke="var(--c-credit)" stroke-width="2"/>
+            <path d="M34,140 L146,138 L258,128 L370,124" fill="none" stroke="var(--c-net)" stroke-width="2"/>
+            <path d="M34,140 L146,138 L258,128 L370,123" fill="none" stroke="var(--c-alt)" stroke-width="1.5" stroke-dasharray="3 3"/>
+            <text x="34"  y="156" text-anchor="middle" font-size="9">18/ago</text>
+            <text x="370" y="156" text-anchor="end"    font-size="9">08/set</text>
+          </svg>
+          <div class="legend"><span><i class="swatch" style="background:var(--c-credit)"></i>managed-by</span><span><i class="swatch" style="background:var(--c-net)"></i>app</span><span><i class="swatch" style="background:var(--c-alt)"></i>environment</span></div>
+        </div>
+      </div>
+      <div class="card" style="display:flex;flex-direction:column;gap:14px">
+        <div class="tile flag" style="border:0;border-top:2px solid var(--accent);padding:0 0 4px">
+          <span class="k">Custo não-alocado</span><span class="v">R$ 23,78</span><span class="s">90% do custo · sem app nem environment</span>
+        </div>
+        <div>
+          <h3 style="font-size:14px">Prontidão de chargeback</h3>
+          <p class="cap" style="margin-bottom:8px">10% — não pronto</p>
+          <div style="display:flex;flex-direction:column;gap:6px;font-size:12.5px">
+            <span><span style="color:var(--ok)">✓</span> labels padrão via <span class="mono">default_labels</span> (Terraform)</span>
+            <span><span style="color:var(--bad)">✕</span> cobertura ≥ 95% do custo</span>
+            <span><span style="color:var(--bad)">✕</span> dono definido por app</span>
+            <span><span style="color:var(--warn)">~</span> recursos manuais (secrets) sem label</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row-2">
+      <div class="card">
+        <h3>Custo alocado por app</h3>
+        <p class="cap">Da fração com label <span class="mono">app</span> (R$ 1,07).</p>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+          <div style="display:flex;align-items:center;gap:10px"><span style="flex:0 0 150px;font-size:12.5px;color:var(--ink-dim)">atlas</span><span class="bar-track" style="flex:1;height:14px"><span class="bar-fill" style="width:100%;background:var(--c-net)"></span></span><span class="mono" style="flex:0 0 52px;text-align:right;font-size:12px">R$ 0,60</span></div>
+          <div style="display:flex;align-items:center;gap:10px"><span style="flex:0 0 150px;font-size:12.5px;color:var(--ink-dim)">polaris-cost-control</span><span class="bar-track" style="flex:1;height:14px"><span class="bar-fill" style="width:50%;background:var(--c-other)"></span></span><span class="mono" style="flex:0 0 52px;text-align:right;font-size:12px">R$ 0,30</span></div>
+          <div style="display:flex;align-items:center;gap:10px"><span style="flex:0 0 150px;font-size:12.5px;color:var(--ink-dim)">observability-hub</span><span class="bar-track" style="flex:1;height:14px"><span class="bar-fill" style="width:28%;background:var(--c-other)"></span></span><span class="mono" style="flex:0 0 52px;text-align:right;font-size:12px">R$ 0,17</span></div>
+        </div>
+        <p class="cap" style="margin-top:8px"><span class="mono">observability-hub</span> = nome antigo do <span class="mono">atlas</span> — labels a atualizar.</p>
+      </div>
+      <div class="card">
+        <h3>Custo alocado por ambiente</h3>
+        <p class="cap">Da fração com label <span class="mono">environment</span> (R$ 1,10).</p>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+          <div style="display:flex;align-items:center;gap:10px"><span style="flex:0 0 60px;font-size:12.5px;color:var(--ink-dim)">prod</span><span class="bar-track" style="flex:1;height:14px"><span class="bar-fill" style="width:100%;background:var(--c-net)"></span></span><span class="mono" style="flex:0 0 52px;text-align:right;font-size:12px">R$ 0,75</span></div>
+          <div style="display:flex;align-items:center;gap:10px"><span style="flex:0 0 60px;font-size:12.5px;color:var(--ink-dim)">dev</span><span class="bar-track" style="flex:1;height:14px"><span class="bar-fill" style="width:47%;background:var(--c-alt)"></span></span><span class="mono" style="flex:0 0 52px;text-align:right;font-size:12px">R$ 0,35</span></div>
+        </div>
+        <p class="cap" style="margin-top:8px">dev e prod dividem o mesmo projeto GCP — só a label separa.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ EFICIÊNCIA & ECONOMIA ============ -->
+  <section class="panel" id="p-efic" role="tabpanel" aria-labelledby="t-efic" hidden>
+    <header>
+      <span class="eyebrow">Rate + workload optimization</span>
+      <h1 style="font-size:22px">Eficiência &amp; economia</h1>
+      <p>Estamos pagando o mínimo? A este volume o ganho é hábito e governança — as recomendações escalam com o projeto.</p>
+    </header>
+
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
+      <div class="tile"><span class="k">Custo por deploy</span><span class="v">R$ 0,04</span><span class="s">~540 deploys/mês (CI) <span class="chip warn" style="margin-left:4px">config</span></span></div>
+      <div class="tile"><span class="k">Custo por 1k requests</span><span class="v">R$ 0,0006</span><span class="s">Cloud Run · total ÷ requests</span></div>
+      <div class="tile"><span class="k">Custo por GB de log</span><span class="v">R$ 0,00</span><span class="s">dentro do free tier (50 GiB)</span></div>
+      <div class="tile"><span class="k">Custo médio por dia</span><span class="v">R$ 0,88</span><span class="s">média móvel 30 dias</span></div>
     </div>
 
     <div class="card">
-      <h3>Cobertura de label (por custo)</h3>
-      <p class="cap">Fração do custo líquido com cada chave preenchida.</p>
-      <div id="c-coverage" style="margin-top:10px"></div>
+      <h3>Do preço de tabela ao custo real</h3>
+      <p class="cap">Acumulado. Sem desconto negociado / CUD nesta conta — a única redução são os créditos.</p>
+      <div class="chartwrap">
+        <svg class="chart" viewBox="0 0 440 160" role="img" aria-label="Ponte do preço de tabela ao custo líquido">
+          <line class="axis" x1="20" y1="130" x2="430" y2="130"/>
+          <g font-size="9" text-anchor="middle">
+            <rect x="30"  y="30" width="70" height="100" fill="var(--c-net)" rx="1"/><text x="65"  y="24">R$ 26,41</text><text x="65"  y="146" fill="var(--ink-dim)">preço de tabela</text>
+            <rect x="140" y="30" width="70" height="2"   fill="var(--c-alt)"/><text x="175" y="24">−R$ 0,00</text><text x="175" y="146" fill="var(--ink-dim)">desconto negociado</text>
+            <rect x="250" y="30" width="70" height="6"   fill="var(--c-alt)"/><text x="285" y="24">−R$ 0,57</text><text x="285" y="146" fill="var(--ink-dim)">créditos</text>
+            <rect x="360" y="36" width="70" height="94"  fill="var(--c-net)" rx="1"/><text x="395" y="30">R$ 25,84</text><text x="395" y="146" fill="var(--ink-dim)">custo líquido</text>
+          </g>
+        </svg>
+      </div>
+      <p class="cap" style="margin-top:6px">Taxa de economia efetiva <b>2,2%</b> — só créditos.</p>
+    </div>
+
+    <div class="row-2">
+      <div class="card">
+        <div class="tile" style="border:0;padding:0"><span class="k">Custo evitado (acumulado)</span><span class="v">R$ 0,00</span><span class="s">sem CUD / SUD / negociação nesta billing account</span></div>
+      </div>
+      <div class="card">
+        <h3>Cobertura de compromissos</h3>
+        <div style="display:flex;align-items:center;gap:16px;margin-top:8px">
+          <svg viewBox="0 0 80 80" style="width:80px;height:80px" aria-hidden="true">
+            <circle cx="40" cy="40" r="30" fill="none" stroke="var(--well)" stroke-width="9"/>
+            <circle cx="40" cy="40" r="30" fill="none" stroke="var(--c-alt)" stroke-width="9" stroke-dasharray="188" stroke-dashoffset="188" transform="rotate(-90 40 40)"/>
+          </svg>
+          <div><span class="mono" style="font-weight:700;font-size:22px">0%</span><div style="font-size:12px;color:var(--ink-dim)">100% on-demand</div></div>
+        </div>
+        <div class="callout" style="margin-top:10px"><span aria-hidden="true">◆</span><span>CUD/SUD não compensa abaixo de ~R$ 30/mês de gasto estável. Reavaliar quando o Cloud Run passar de R$ 50/mês sustentado.</span></div>
+      </div>
+    </div>
+
+    <div class="row-2">
+      <div class="card">
+        <h3>Eficiência do Cloud Run</h3>
+        <table class="datatable" style="margin-top:8px"><tbody>
+          <tr><td>Custo por vCPU·s</td><td class="num">R$ 0,0000151</td></tr>
+          <tr><td>Custo por GiB·s</td><td class="num">R$ 0,0000023</td></tr>
+          <tr><td>Razão CPU : memória</td><td class="num">76 : 24</td></tr>
+        </tbody></table>
+      </div>
+      <div class="card">
+        <h3>Custo por request · por dia</h3>
+        <p class="cap">Estável em ~R$ 0,0006 / 1k req — sem regressão de eficiência.</p>
+        <div class="chartwrap">
+          <svg class="chart" viewBox="0 0 340 120" role="img" aria-label="Tendência do custo por mil requests">
+            <line class="axis" x1="20" y1="96" x2="330" y2="96"/>
+            <path d="M20,70 L70,66 L120,72 L170,68 L220,70 L270,67 L330,69" fill="none" stroke="var(--c-net)" stroke-width="2"/>
+            <text x="20" y="112" font-size="9">30/ago</text><text x="330" y="112" text-anchor="end" font-size="9">08/set</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px">
+        <h3>Recomendações</h3>
+        <span class="tile" style="border:0;padding:0;text-align:right"><span class="k">Economia potencial</span><span class="v" style="font-size:18px">R$ 4–7</span><span class="s">/mês · 15–27% do run-rate</span></span>
+      </div>
+      <p class="cap">Lista curada, revisada periodicamente (não vem do billing export). <span class="chip warn">curado</span></p>
+      <table class="datatable" style="margin-top:8px"><thead><tr><th>Ação</th><th>Evidência</th><th>Economia est./mês</th><th>Esforço</th></tr></thead><tbody>
+        <tr><td>Escalar Cloud Run dev a zero fora do horário</td><td style="text-align:left;font-size:12px;color:var(--ink-dim)">backend-dev / frontend-dev com min-instances=1 24/7; tráfego só em horário comercial</td><td class="num">R$ 2–4</td><td>baixo</td></tr>
+        <tr><td>CPU only-on-request em serviços de baixa carga</td><td style="text-align:left;font-size:12px;color:var(--ink-dim)">CPU always-allocated paga vCPU·s ocioso; R$ 16 de R$ 21,81 é CPU Allocation Time</td><td class="num">R$ 1–2</td><td>baixo</td></tr>
+        <tr><td>Política de limpeza no Artifact Registry</td><td style="text-align:left;font-size:12px;color:var(--ink-dim)">imagens antigas sem tag de release; manter só as últimas 10 por repo</td><td class="num">R$ 0,30</td><td>baixo</td></tr>
+        <tr><td>Retenção do log bucket _Default em dev</td><td style="text-align:left;font-size:12px;color:var(--ink-dim)">hoje R$ 0 (free tier), mas 30d de retenção; 7d em dev é preventivo</td><td class="num">preventivo</td><td>baixo</td></tr>
+        <tr><td>Budget por label app / environment</td><td style="text-align:left;font-size:12px;color:var(--ink-dim)">dev e prod dividem o projeto sem orçamento separado; sem label obrigatória não dá pra alertar por app</td><td class="num">governança</td><td>médio</td></tr>
+      </tbody></table>
     </div>
   </section>
 
 </main>
 
 <footer>
-  <b>mock visual</b> · polaris-cost-model/mock · dados: validação de 2026-09-09 (R$ 26,41 em ~2 meses) ·
-  <b>não é o app</b> — referência visual para <b>apps/web/</b> · paleta: DP6 Design System
+  <b>mock visual · 6 abas</b> · polaris-cost-model/mock · dados: validação de 2026-09-09 (R$ 26,41 em ~2 meses) ·
+  <b>não é o app</b> — referência para <b>specs/005-telas.md</b> e <b>apps/web/</b> · DP6 Design System (dark por padrão)
 </footer>
 
 <div class="tooltip" id="tt"></div>
@@ -406,7 +601,7 @@ function hideTT(){tt.style.opacity="0";}
 
 /* ================= scorecard ================= */
 function scorecard(){
-  const netMtd=2.19, prevMonth=23.65, runRate=netMtd/9*30, credits=-0.57, budget=50;
+  const netMtd=2.19, prevMonth=23.65, runRate=netMtd/9*30, credits=-0.57, budget=20;
   const usedPct=netMtd/budget*100, rrPct=runRate/budget*100;
   const cards=[
     {k:"Custo líquido · MTD", v:brl(netMtd), s:`<span class="mono">${usd(netMtd)}</span>`},
@@ -414,7 +609,8 @@ function scorecard(){
     {k:"Δ vs. mês anterior", v:`<span class="mono">${pct(runRate/prevMonth*100-100)}</span>`, s:`run-rate vs. <span class="mono">${brl(prevMonth)}</span> (ago, fechado)`, cls:"delta-down"},
     {k:"Créditos no mês", v:brl(credits), s:`só <span class="mono">DISCOUNT</span> (Cloud Run)`},
     {k:"Custo vs. orçamento", v:`<span class="mono">${usedPct.toLocaleString("pt-BR",{maximumFractionDigits:1})}%</span>`, s:`de <span class="mono">${brl(budget)}</span> · run-rate ${rrPct.toLocaleString("pt-BR",{maximumFractionDigits:1})}%`, flag:true,
-     extra:`<span class="chip ok">✓ dentro do orçamento</span><div class="bar-track"><div class="bar-fill" style="width:${Math.max(usedPct,1.5)}%"></div></div>`}
+     extra:`<span class="chip ${rrPct<=100?'ok':'warn'}">${rrPct<=100?'✓ dentro do orçamento':'▲ acima no ritmo atual'}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.max(usedPct,1.5)}%"></div></div>`},
+    {k:"Economia efetiva", v:`<span class="mono">2,1%</span>`, s:`só créditos · sem desconto negociado`}
   ];
   document.getElementById("scorecard").innerHTML=cards.map(c=>`
     <div class="tile${c.flag?' flag':''}">
@@ -659,16 +855,16 @@ document.querySelectorAll('.toggle-tbl').forEach(b=>b.addEventListener('click',(
 
 /* ================= tema ================= */
 const root=document.documentElement;
+/* dark é o padrão; só persiste "light" (espelha apps/web/src/lib/useTheme.ts). */
 function applyTheme(mode){
-  if(mode)root.setAttribute('data-theme',mode); else root.removeAttribute('data-theme');
-  try{mode?localStorage.setItem('pcm-theme',mode):localStorage.removeItem('pcm-theme');}catch(e){}
+  root.setAttribute('data-theme',mode);
+  try{mode==='light'?localStorage.setItem('pcm:theme','light'):localStorage.removeItem('pcm:theme');}catch(e){}
   renderAll();
 }
-try{const s=localStorage.getItem('pcm-theme');if(s)root.setAttribute('data-theme',s);}catch(e){}
+try{root.setAttribute('data-theme',localStorage.getItem('pcm:theme')==='light'?'light':'dark');}
+catch(e){root.setAttribute('data-theme','dark');}
 document.getElementById('themeBtn').addEventListener('click',()=>{
-  const cur=root.getAttribute('data-theme');
-  const sysDark=matchMedia('(prefers-color-scheme:dark)').matches;
-  applyTheme(cur? (cur==='dark'?'light':'dark') : (sysDark?'light':'dark'));
+  applyTheme(root.getAttribute('data-theme')==='dark'?'light':'dark');
 });
 
 /* ================= render ================= */
@@ -682,7 +878,6 @@ function renderAll(){
   skuChart(); anomList(); coverageChart();
 }
 renderAll();
-matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>{if(!root.getAttribute('data-theme'))renderAll();});
 </script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 export function Card({ title, cap, children }: { title?: string; cap?: string; children: ReactNode }) {
   return (
@@ -149,11 +149,28 @@ export function MetricTile({
   );
 }
 
-export function MetricGrid({ children }: { children: ReactNode }) {
+/** Grid de KPIs. `cols` fixa o nº de colunas em telas largas (colapsa via CSS var);
+ *  sem `cols`, usa auto-fit. Evita o layout 5+1 quando há 6 tiles. */
+export function MetricGrid({ children, cols }: { children: ReactNode; cols?: number }) {
+  const style: CSSProperties = cols
+    ? {
+        display: "grid",
+        gap: 14,
+        gridTemplateColumns: `repeat(var(--mg-cols, ${cols}), minmax(0, 1fr))`,
+      }
+    : { display: "grid", gap: 14, gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))" };
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 14 }}>
-      {children}
-    </div>
+    <>
+      {cols ? (
+        <style>{`
+          @media (max-width: 1080px){ [data-mg]{ --mg-cols: 3 } }
+          @media (max-width: 620px){ [data-mg]{ --mg-cols: 2 } }
+        `}</style>
+      ) : null}
+      <div data-mg style={style}>
+        {children}
+      </div>
+    </>
   );
 }
 
