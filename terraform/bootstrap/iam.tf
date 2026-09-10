@@ -8,6 +8,7 @@ locals {
     "roles/artifactregistry.reader",
     "roles/monitoring.viewer",
     "roles/iam.roleViewer",
+    "roles/iam.serviceAccountViewer", # refresh das SAs de runtime (billing-*-run) no plan
   ]
 
   # apply: cria toda a infra dos environments (datasets, Dataform configs, Cloud Run, IAP, IAM, alertas)
