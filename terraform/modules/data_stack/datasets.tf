@@ -28,10 +28,18 @@ resource "google_bigquery_dataset_iam_member" "dataform_editor" {
   member     = "serviceAccount:${var.dataform_sa_email}"
 }
 
-# SA de runtime da API: le SO o reporting
-resource "google_bigquery_dataset_iam_member" "api_reporting_viewer" {
+# SA de runtime da API: le reporting (views rpt_*) + mart (o endpoint /meta le
+# fct_billing_cost_daily e agg_billing_cost_monthly direto p/ freshness e line_count).
+# stg e assertions ficam fora.
+resource "google_bigquery_dataset_iam_member" "api_viewer" {
+  for_each   = toset(["reporting", "mart"])
   project    = var.project_id
-  dataset_id = google_bigquery_dataset.this["reporting"].dataset_id
+  dataset_id = google_bigquery_dataset.this[each.value].dataset_id
   role       = "roles/bigquery.dataViewer"
   member     = "serviceAccount:${var.api_runtime_sa_email}"
+}
+
+moved {
+  from = google_bigquery_dataset_iam_member.api_reporting_viewer
+  to   = google_bigquery_dataset_iam_member.api_viewer["reporting"]
 }
