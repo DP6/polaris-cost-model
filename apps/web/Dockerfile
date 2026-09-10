@@ -11,4 +11,5 @@ FROM nginx:1.27-alpine
 # envsubst nas vars presentes no ambiente (API_UPSTREAM vem do Cloud Run / Terraform).
 ENV API_UPSTREAM=http://127.0.0.1:8081
 COPY nginx.conf /etc/nginx/templates/default.conf.template
+COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 8080
