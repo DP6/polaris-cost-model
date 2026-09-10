@@ -118,61 +118,86 @@ def scorecard(
     service: str | None = None,
     environment: str | None = None,
     app: str | None = None,
+    from_: DateStr | None = Query(default=None, alias="from"),
+    to: DateStr | None = None,
 ) -> m.ScorecardDTO:
+    """Sem from/to e sem recorte -> caminho rapido pela view (MTD do mes corrente).
+    Com from/to -> os campos de custo/creditos/economia passam a ser a soma na janela
+    e prev_month_net_brl vira o total da janela anterior de mesmo tamanho. run_rate/budget
+    continuam MTD (o front nao os usa no bloco "periodo"; /budget chama sem from/to)."""
     if mock_active():
         return m.ScorecardDTO(**fx.SCORECARD)
-    if not _has_scope(service, environment, app):
-        r = query(f"SELECT * FROM `{RPT}.rpt_cost_scorecard`")[0]
-        return m.ScorecardDTO(**r)
 
-    # recorte ativo -> recomputa de rpt_cost_daily (MTD) + rpt_cost_monthly (mes anterior)
     where, params = _scope(service, environment, app)
-    cur = query(f"""
+
+    # sempre precisamos do MTD para run_rate/budget/dias
+    mtd = query(f"""
         SELECT
-          SUM(net_cost_brl)   AS net_mtd_brl,
-          SUM(net_cost_usd)   AS net_mtd_usd,
-          SUM(gross_cost_brl) AS gross_mtd_brl,
-          SUM(credits_total_brl) AS credits_mtd_brl
+          SUM(net_cost_brl) net, SUM(net_cost_usd) net_usd,
+          SUM(gross_cost_brl) gross, SUM(credits_total_brl) credits
         FROM `{RPT}.rpt_cost_daily`
         WHERE FORMAT_DATE('%Y%m', usage_date) = FORMAT_DATE('%Y%m', CURRENT_DATE('America/Sao_Paulo'))
           {where}
     """, params)[0]
-    prev = query(f"""
-        SELECT SUM(net_cost_brl) AS net_prev_brl
-        FROM `{RPT}.rpt_cost_monthly`
-        WHERE invoice_month = FORMAT_DATE('%Y%m', DATE_SUB(DATE_TRUNC(CURRENT_DATE('America/Sao_Paulo'), MONTH), INTERVAL 1 DAY))
-          {where}
-    """, params)[0]
     cal = query("""
-        SELECT
-          EXTRACT(DAY FROM CURRENT_DATE('America/Sao_Paulo')) AS days_elapsed,
-          EXTRACT(DAY FROM LAST_DAY(CURRENT_DATE('America/Sao_Paulo'))) AS days_in_month,
-          FORMAT_DATE('%Y%m', CURRENT_DATE('America/Sao_Paulo')) AS invoice_month
+        SELECT EXTRACT(DAY FROM CURRENT_DATE('America/Sao_Paulo')) days_elapsed,
+               EXTRACT(DAY FROM LAST_DAY(CURRENT_DATE('America/Sao_Paulo'))) days_in_month,
+               FORMAT_DATE('%Y%m', CURRENT_DATE('America/Sao_Paulo')) invoice_month
     """)[0]
-
-    net_mtd = float(cur["net_mtd_brl"] or 0.0)
-    gross_mtd = float(cur["gross_mtd_brl"] or 0.0)
-    credits_mtd = float(cur["credits_mtd_brl"] or 0.0)
-    net_prev = float(prev["net_prev_brl"] or 0.0)
+    net_mtd = float(mtd["net"] or 0.0)
     days_elapsed = int(cal["days_elapsed"] or 1) or 1
     days_in_month = int(cal["days_in_month"] or 30)
     run_rate = net_mtd / days_elapsed * days_in_month
     budget = S.monthly_budget_brl
+
+    if from_ and to:
+        win = query(f"""
+            SELECT SUM(net_cost_brl) net, SUM(net_cost_usd) net_usd,
+                   SUM(gross_cost_brl) gross, SUM(credits_total_brl) credits
+            FROM `{RPT}.rpt_cost_daily`
+            WHERE usage_date BETWEEN @from AND @to {where}
+        """, {**params, "from": from_, "to": to})[0]
+        prev = query(f"""
+            SELECT SUM(net_cost_brl) net FROM `{RPT}.rpt_cost_daily`
+            WHERE usage_date BETWEEN
+              DATE_SUB(@from, INTERVAL DATE_DIFF(@to, @from, DAY) + 1 DAY) AND DATE_SUB(@from, INTERVAL 1 DAY)
+              {where}
+        """, {**params, "from": from_, "to": to})[0]
+        net = float(win["net"] or 0.0)
+        gross = float(win["gross"] or 0.0)
+        credits = float(win["credits"] or 0.0)
+        net_usd = float(win["net_usd"] or 0.0)
+        net_prev = float(prev["net"] or 0.0)
+    elif not _has_scope(service, environment, app):
+        r = query(f"SELECT * FROM `{RPT}.rpt_cost_scorecard`")[0]
+        return m.ScorecardDTO(**r)
+    else:
+        prevm = query(f"""
+            SELECT SUM(net_cost_brl) net FROM `{RPT}.rpt_cost_monthly`
+            WHERE invoice_month = FORMAT_DATE('%Y%m', DATE_SUB(DATE_TRUNC(CURRENT_DATE('America/Sao_Paulo'), MONTH), INTERVAL 1 DAY))
+              {where}
+        """, params)[0]
+        net = net_mtd
+        gross = float(mtd["gross"] or 0.0)
+        credits = float(mtd["credits"] or 0.0)
+        net_usd = float(mtd["net_usd"] or 0.0)
+        net_prev = float(prevm["net"] or 0.0)
+
     return m.ScorecardDTO(
         invoice_month=cal["invoice_month"],
-        net_cost_mtd_brl=net_mtd,
-        net_cost_mtd_usd=float(cur["net_mtd_usd"] or 0.0),
-        gross_cost_mtd_brl=gross_mtd,
-        credits_mtd_brl=credits_mtd,
+        net_cost_mtd_brl=net,
+        net_cost_mtd_usd=net_usd,
+        gross_cost_mtd_brl=gross,
+        credits_mtd_brl=credits,
         prev_month_net_brl=net_prev,
-        mom_pct=((run_rate - net_prev) / net_prev) if net_prev else 0.0,
+        mom_pct=((net - net_prev) / net_prev) if net_prev else 0.0,
         run_rate_eom_brl=run_rate,
         days_elapsed=days_elapsed,
         days_in_month=days_in_month,
         budget_brl=budget,
         budget_used_pct=(net_mtd / budget) if budget else 0.0,
         run_rate_vs_budget_pct=(run_rate / budget) if budget else 0.0,
-        effective_savings_pct=((-credits_mtd / gross_mtd) if gross_mtd else 0.0),
+        effective_savings_pct=((-credits / gross) if gross else 0.0),
     )
 
 
@@ -204,6 +229,62 @@ def cost_daily(
     """, params)
     return [m.DailyPointDTO(usage_date=str(r["usage_date"]), net_cost_brl=r["net_cost_brl"],
                             net_cost_usd=r["net_cost_usd"] or 0.0, ma7_brl=r["ma7_brl"] or 0.0) for r in rows]
+
+
+@router.get("/cost/series", response_model=list[m.CostSeriesPointDTO])
+def cost_series(
+    grain: str = "day",  # day | month
+    group_by: str = "none",  # none | service | environment | app
+    from_: DateStr | None = Query(default=None, alias="from"),
+    to: DateStr | None = None,
+    service: str | None = None,
+    environment: str | None = None,
+    app: str | None = None,
+    currency: str = "BRL",
+) -> list[m.CostSeriesPointDTO]:
+    """Serie temporal em formato longo: barras por periodo, opcionalmente empilhadas.
+    grain=day -> rpt_cost_daily; grain=month -> rpt_cost_monthly."""
+    col = {"service": "service_description", "environment": "label_environment", "app": "label_app"}.get(group_by)
+    if mock_active():
+        pts = [p for p in fx.daily_points() if (not from_ or p["usage_date"] >= from_) and (not to or p["usage_date"] <= to)]
+        if grain == "month":
+            agg: dict[str, float] = {}
+            for p in pts:
+                agg[p["usage_date"][:7].replace("-", "")] = agg.get(p["usage_date"][:7].replace("-", ""), 0.0) + p["net_cost_brl"]
+            base = [{"period": k, "v": v} for k, v in sorted(agg.items())]
+        else:
+            base = [{"period": p["usage_date"], "v": p["net_cost_brl"]} for p in pts]
+        if not col:
+            return [m.CostSeriesPointDTO(period=b["period"], key="total", net_cost_brl=b["v"]) for b in base]
+        # mock: reparte cada periodo entre as chaves do fx.DIMENSIONS de forma estavel
+        keys = fx.DIMENSIONS[{"service_description": "services", "label_environment": "environments", "label_app": "apps"}[col]]
+        w = [0.55, 0.30, 0.15] + [0.0] * len(keys)
+        out = []
+        for b in base:
+            for i, k in enumerate(keys[:3]):
+                out.append(m.CostSeriesPointDTO(period=b["period"], key=k, net_cost_brl=round(b["v"] * w[i], 4)))
+        return out
+
+    where, params = _scope(service, environment, app)
+    if grain == "month":
+        period_sql = "invoice_month"
+        src = f"`{RPT}.rpt_cost_monthly`"
+        win = ""
+        if from_ and to:
+            win = " AND invoice_month_date BETWEEN DATE_TRUNC(@from, MONTH) AND @to"
+            params = {**params, "from": from_, "to": to}
+    else:
+        period_sql = "CAST(usage_date AS STRING)"
+        src = f"`{RPT}.rpt_cost_daily`"
+        win = " AND usage_date BETWEEN @from AND @to"
+        params = {**params, "from": from_, "to": to}
+    key_sql = f"IFNULL(NULLIF({col}, ''), '(sem label)')" if col else "'total'"
+    rows = query(f"""
+        SELECT {period_sql} period, {key_sql} key, SUM(net_cost_brl) net_cost_brl
+        FROM {src} WHERE TRUE {where} {win}
+        GROUP BY period, key ORDER BY period
+    """, params)
+    return [m.CostSeriesPointDTO(period=str(r["period"]), key=r["key"], net_cost_brl=r["net_cost_brl"]) for r in rows]
 
 
 @router.get("/cost/by-service", response_model=list[m.ServiceCostDTO])
@@ -388,19 +469,29 @@ def alloc_by_app(
     )
 
 
-@router.get("/allocation/by-env", response_model=list[m.EnvCostDTO])
+@router.get("/allocation/by-env", response_model=m.EnvAllocationDTO)
 def alloc_by_env(
     from_: DateStr | None = Query(default=None, alias="from"), to: DateStr | None = None,
     currency: str = "BRL",
-) -> list[m.EnvCostDTO]:
+) -> m.EnvAllocationDTO:
     if mock_active():
-        return [m.EnvCostDTO(**e) for e in fx.ALLOC_BY_ENV]
-    rows = query(f"""
-        SELECT label_environment, SUM(net_cost_brl) net_cost_brl
+        rows = [m.EnvCostDTO(**e) for e in fx.ALLOC_BY_ENV]
+        un = float(fx.ALLOC_BY_APP["unallocated_net_cost_brl"])
+        tot = sum(r.net_cost_brl for r in rows) + un
+        return m.EnvAllocationDTO(rows=rows, unallocated_net_cost_brl=un, unallocated_pct=un / tot if tot else 0.0)
+    rows_raw = query(f"""
+        SELECT label_environment, SUM(net_cost_brl) net_cost_brl,
+               ANY_VALUE(unallocated_net_cost_brl) un, ANY_VALUE(net_cost_total_brl) tot
         FROM `{RPT}.rpt_showback_monthly` WHERE label_environment != '(sem label)'
         GROUP BY label_environment ORDER BY net_cost_brl DESC
     """)
-    return [m.EnvCostDTO(**r) for r in rows]
+    un = rows_raw[0]["un"] if rows_raw else 0.0
+    tot = rows_raw[0]["tot"] if rows_raw else 1.0
+    return m.EnvAllocationDTO(
+        rows=[m.EnvCostDTO(label_environment=r["label_environment"], net_cost_brl=r["net_cost_brl"]) for r in rows_raw],
+        unallocated_net_cost_brl=un,
+        unallocated_pct=(un / tot if tot else 0.0),
+    )
 
 
 @router.get("/allocation/chargeback-readiness", response_model=m.ChargebackReadinessDTO)

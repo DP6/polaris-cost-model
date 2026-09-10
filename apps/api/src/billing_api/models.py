@@ -47,6 +47,15 @@ class DailyPointDTO(BaseModel):
     ma7_brl: float
 
 
+class CostSeriesPointDTO(BaseModel):
+    """Série temporal em formato longo. `period` = usage_date (dia) ou invoice_month (mês);
+    `key` = valor do group_by, ou "total" quando group_by=none."""
+
+    period: str
+    key: str
+    net_cost_brl: float
+
+
 class ServiceCostDTO(BaseModel):
     service_description: str
     net_cost_brl: float
@@ -127,6 +136,12 @@ class AppAllocationDTO(BaseModel):
 class EnvCostDTO(BaseModel):
     label_environment: str
     net_cost_brl: float
+
+
+class EnvAllocationDTO(BaseModel):
+    rows: list[EnvCostDTO]
+    unallocated_net_cost_brl: float
+    unallocated_pct: float
 
 
 class CriterionDTO(BaseModel):

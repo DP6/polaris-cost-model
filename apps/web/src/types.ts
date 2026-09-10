@@ -39,6 +39,11 @@ export interface DailyPoint {
   net_cost_usd: number;
   ma7_brl: number;
 }
+export interface CostSeriesPoint {
+  period: string; // usage_date (dia) ou invoice_month (mês)
+  key: string; // valor do group_by, ou "total"
+  net_cost_brl: number;
+}
 export interface ServiceCost {
   service_description: string;
   net_cost_brl: number;
@@ -104,6 +109,11 @@ export interface AppAllocation {
 export interface EnvCost {
   label_environment: string;
   net_cost_brl: number;
+}
+export interface EnvAllocation {
+  rows: EnvCost[];
+  unallocated_net_cost_brl: number;
+  unallocated_pct: number;
 }
 export interface ChargebackReadiness {
   coverage_pct: number;

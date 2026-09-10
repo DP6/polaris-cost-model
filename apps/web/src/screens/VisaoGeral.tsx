@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { AreaTrend } from "../charts/AreaTrend";
 import { HBars } from "../charts/HBars";
+import { type Grain, type GroupBy, TemporalChart } from "../charts/TemporalChart";
 import {
   DataTable,
   LoadingOrError,
@@ -10,13 +12,15 @@ import {
   StatusBadge,
 } from "../components/ui";
 import { useApi } from "../lib/api";
-import { brl, dayLabel, monthLabel, monthLong, pct, pctPlain, relativeToNow, usd } from "../lib/format";
+import { brl, monthLabel, monthLong, pct, pctPlain, relativeToNow, usd } from "../lib/format";
 import { filterParams, resolveWindow, scopeParams, useFilters } from "../lib/useFilters";
 import type {
+  AppAllocation,
   Budget,
   BurndownPoint,
-  DailyPoint,
+  CostSeriesPoint,
   Dimensions,
+  EnvAllocation,
   ForecastMonth,
   ReconRow,
   Scorecard,
@@ -28,19 +32,54 @@ const brDate = (iso: string) => {
   return `${d}/${m}`;
 };
 
+const groupEyebrow = {
+  font: "500 10px/1 Ubuntu, sans-serif",
+  letterSpacing: ".18em",
+  textTransform: "uppercase" as const,
+  color: "var(--muted-foreground)",
+  marginBottom: 8,
+  display: "block",
+};
+
+function AllocBars({
+  title,
+  rows,
+  unallocated,
+}: {
+  title: string;
+  rows: { label: string; value: number }[];
+  unallocated: number;
+}) {
+  const all = [...rows, { label: "(não-alocado)", value: unallocated }];
+  return (
+    <div>
+      <span style={groupEyebrow}>{title}</span>
+      <HBars rows={all.map((r) => ({ label: r.label, value: r.value }))} />
+    </div>
+  );
+}
+
 export function VisaoGeral() {
   const [f] = useFilters();
   const win = resolveWindow(f);
   const janela = `${brDate(win.from)} a ${brDate(win.to)}`;
 
+  const [series, setSeries] = useState<{ grain: Grain; groupBy: GroupBy }>({ grain: "day", groupBy: "none" });
+
   const dims = useApi<Dimensions>("/dimensions");
-  const sc = useApi<Scorecard>("/scorecard", scopeParams(f));
-  const daily = useApi<DailyPoint[]>("/cost/daily", filterParams(f));
+  const sc = useApi<Scorecard>("/scorecard", filterParams(f));
   const svc = useApi<ServiceCost[]>("/cost/by-service", filterParams(f));
   const recon = useApi<ReconRow[]>("/reconciliation", scopeParams(f));
   const budget = useApi<Budget>("/budget", scopeParams(f));
   const burndown = useApi<BurndownPoint[]>("/budget/burndown", { currency: f.currency });
   const forecast = useApi<ForecastMonth[]>("/forecast", { horizon: "3", currency: f.currency });
+  const cseries = useApi<CostSeriesPoint[]>("/cost/series", {
+    ...filterParams(f),
+    grain: series.grain,
+    group_by: series.groupBy,
+  });
+  const byApp = useApi<AppAllocation>("/allocation/by-app", scopeParams(f));
+  const byEnv = useApi<EnvAllocation>("/allocation/by-env", scopeParams(f));
 
   const s = sc.data;
   const d = dims.data;
@@ -98,94 +137,80 @@ export function VisaoGeral() {
         )}
       </div>
 
+      {/* Scorecard dividido: esquerda não segue o Período; direita segue */}
       <LoadingOrError loading={sc.loading} error={sc.error} />
       {s && (
-        <MetricGrid cols={6}>
-          <MetricTile
-            label="Custo líquido · MTD"
-            value={f.currency === "USD" ? usd(s.net_cost_mtd_usd) : brl(s.net_cost_mtd_brl)}
-            sub={
-              <span className="mono">
-                {f.currency === "USD" ? brl(s.net_cost_mtd_brl) : usd(s.net_cost_mtd_usd)}
-              </span>
-            }
-          />
-          <MetricTile
-            label="Run-rate fim de mês"
-            value={brl(s.run_rate_eom_brl)}
-            sub={`projeção linear · ${s.days_elapsed} de ${s.days_in_month} dias`}
-          />
-          <MetricTile
-            label="Δ vs. mês anterior"
-            value={pct(s.mom_pct)}
-            tone={s.mom_pct <= 0 ? "ok" : "bad"}
-            sub={
-              <>
-                run-rate vs. <span className="mono">{brl(s.prev_month_net_brl)}</span>
-              </>
-            }
-          />
-          <MetricTile label="Créditos no mês" value={brl(s.credits_mtd_brl)} sub="só DISCOUNT (Cloud Run)" />
-          <MetricTile
-            label="Custo vs. orçamento"
-            value={pctPlain(s.budget_used_pct)}
-            accent
-            sub={
-              <>
-                de <span className="mono">{brl(s.budget_brl)}</span> · run-rate{" "}
-                {pctPlain(s.run_rate_vs_budget_pct)}
-                <br />
-                <StatusBadge tone={s.run_rate_vs_budget_pct <= 1 ? "ok" : "warn"}>
-                  {s.run_rate_vs_budget_pct <= 1 ? "dentro do orçamento" : "acima no ritmo atual"}
-                </StatusBadge>
-              </>
-            }
-          />
-          <MetricTile
-            label="Economia efetiva"
-            value={pctPlain(s.effective_savings_pct)}
-            sub="só créditos · sem desconto negociado"
-          />
-        </MetricGrid>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(0, 0.9fr) minmax(0, 1.9fr)",
+            gap: 24,
+            alignItems: "start",
+          }}
+        >
+          <div style={{ borderRight: "1px solid var(--border)", paddingRight: 24 }}>
+            <span style={groupEyebrow}>Mês corrente · fixo</span>
+            <MetricGrid cols={2}>
+              <MetricTile
+                label="Custo vs. orçamento"
+                value={pctPlain(s.budget_used_pct)}
+                sub={
+                  <>
+                    de <span className="mono">{brl(s.budget_brl)}</span> · run-rate{" "}
+                    {pctPlain(s.run_rate_vs_budget_pct)}
+                    <br />
+                    <StatusBadge tone={s.run_rate_vs_budget_pct <= 1 ? "ok" : "warn"}>
+                      {s.run_rate_vs_budget_pct <= 1 ? "dentro do orçamento" : "acima no ritmo atual"}
+                    </StatusBadge>
+                  </>
+                }
+              />
+              <MetricTile
+                label="Run-rate fim de mês"
+                value={brl(s.run_rate_eom_brl)}
+                sub={`projeção linear · ${s.days_elapsed} de ${s.days_in_month} dias`}
+              />
+            </MetricGrid>
+          </div>
+
+          <div>
+            <span style={groupEyebrow}>Período · {janela}</span>
+            <MetricGrid cols={4}>
+              <MetricTile
+                label="Custo líquido"
+                value={f.currency === "USD" ? usd(s.net_cost_mtd_usd) : brl(s.net_cost_mtd_brl)}
+                sub={
+                  <span className="mono">
+                    {f.currency === "USD" ? brl(s.net_cost_mtd_brl) : usd(s.net_cost_mtd_usd)}
+                  </span>
+                }
+              />
+              <MetricTile
+                label="Δ vs. período anterior"
+                value={pct(s.mom_pct)}
+                tone={s.mom_pct <= 0 ? "ok" : "bad"}
+                sub={
+                  <>
+                    anterior <span className="mono">{brl(s.prev_month_net_brl)}</span>
+                  </>
+                }
+              />
+              <MetricTile
+                label="Créditos"
+                value={brl(s.credits_mtd_brl)}
+                sub="créditos aplicados no período"
+              />
+              <MetricTile
+                label="Economia efetiva"
+                value={pctPlain(s.effective_savings_pct)}
+                sub="1 − líquido / bruto (só créditos)"
+              />
+            </MetricGrid>
+          </div>
+        </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "1.55fr 1fr", gap: 16 }}>
-        <Panel
-          title="Custo líquido diário"
-          cap={`Área = custo do dia · linha tracejada = média móvel 7 dias · ${janela}.`}
-        >
-          <LoadingOrError loading={daily.loading} error={daily.error} />
-          {daily.data &&
-            (daily.data.length === 0 ? (
-              <p style={{ color: "var(--ink-mute)", fontSize: 13 }}>Sem custo no período/recorte.</p>
-            ) : (
-              <AreaTrend
-                data={daily.data.map((x) => ({
-                  label: dayLabel(x.usage_date),
-                  value: x.net_cost_brl,
-                  ma7: x.ma7_brl,
-                }))}
-              />
-            ))}
-        </Panel>
-
-        <Panel title="Custo por serviço" cap={`Acumulado · ${janela}. Cloud Run concentra a maior parte.`}>
-          <LoadingOrError loading={svc.loading} error={svc.error} />
-          {svc.data &&
-            (svc.data.length === 0 ? (
-              <p style={{ color: "var(--ink-mute)", fontSize: 13 }}>Sem custo no período/recorte.</p>
-            ) : (
-              <HBars
-                rows={svc.data.map((r) => ({
-                  label: r.service_description,
-                  value: r.net_cost_brl,
-                  pct: r.pct_of_total,
-                }))}
-              />
-            ))}
-        </Panel>
-      </div>
-
+      {/* mês-âncora antes dos widgets de janela */}
       <Panel
         title="Reconciliação com a fatura"
         cap="net = custo bruto + créditos. Cada mês confere com o relatório de faturamento do console."
@@ -229,30 +254,24 @@ export function VisaoGeral() {
         )}
       </Panel>
 
-      {/* ---- Orçamento do mês (ex-aba Orçamento — specs/005 §1) ---- */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 2, marginTop: 4 }}>
+      {/* Orçamento & previsão (mês-âncora) */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
         <span className="eyebrow">Orçamento do mês · {brl(budget.data?.budget_brl ?? 20)}</span>
         <h2 style={{ fontSize: 18 }}>Orçamento &amp; previsão</h2>
       </div>
-
       <LoadingOrError loading={budget.loading} error={budget.error} />
       {budget.data && (
-        <MetricGrid cols={4}>
+        <MetricGrid cols={3}>
           <MetricTile
             label="Consumido · MTD"
             value={brl(budget.data.net_cost_mtd_brl)}
             sub={pctPlain(budget.data.budget_used_pct)}
           />
           <MetricTile
-            label="Projeção fim de mês"
-            value={brl(budget.data.run_rate_eom_brl)}
-            sub={`${pctPlain(budget.data.run_rate_vs_budget_pct)} · run-rate linear`}
-          />
-          <MetricTile
             label="Folga projetada"
             value={brl(budget.data.headroom_brl)}
             tone={budget.data.headroom_brl >= 0 ? "ok" : "bad"}
-            sub="orçamento − projeção"
+            sub="orçamento − projeção linear"
           />
           <MetricTile
             label="Estouro projetado"
@@ -265,7 +284,7 @@ export function VisaoGeral() {
       <div style={{ display: "grid", gridTemplateColumns: "1.55fr 1fr", gap: 16 }}>
         <Panel
           title="Consumo acumulado vs. orçamento"
-          cap="Linha = realizado (MTD) · tracejada = orçamento. Thresholds 50/80/100/120% no gráfico completo (PR B)."
+          cap="Linha = realizado · tracejada = orçamento. Thresholds 50/80/100/120% no gráfico completo (PR B)."
         >
           <LoadingOrError loading={burndown.loading} error={burndown.error} />
           {burndown.data && burndown.data.length > 0 && (
@@ -286,13 +305,13 @@ export function VisaoGeral() {
           <LoadingOrError loading={forecast.loading} error={forecast.error} />
           {forecast.data && (
             <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 6 }}>
-              {forecast.data.map((m) => (
-                <div key={m.invoice_month} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              {forecast.data.map((mo) => (
+                <div key={mo.invoice_month} style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <span
                     className="mono"
                     style={{ flex: "0 0 58px", fontSize: 12, color: "var(--muted-foreground)" }}
                   >
-                    {monthLabel(m.invoice_month)}
+                    {monthLabel(mo.invoice_month)}
                   </span>
                   <span
                     style={{
@@ -307,17 +326,17 @@ export function VisaoGeral() {
                       style={{
                         display: "block",
                         height: "100%",
-                        width: `${Math.min((m.value_brl / 24) * 100, 100)}%`,
-                        background: m.is_actual ? "var(--chart-net)" : "var(--chart-other)",
+                        width: `${Math.min((mo.value_brl / 24) * 100, 100)}%`,
+                        background: mo.is_actual ? "var(--chart-net)" : "var(--chart-other)",
                       }}
                     />
                   </span>
-                  <span className="mono" style={{ flex: "0 0 120px", textAlign: "right", fontSize: 12 }}>
-                    {brl(m.value_brl)}
-                    {m.forecast_lo_brl != null && m.forecast_hi_brl != null && (
+                  <span className="mono" style={{ flex: "0 0 130px", textAlign: "right", fontSize: 12 }}>
+                    {brl(mo.value_brl)}
+                    {mo.forecast_lo_brl != null && mo.forecast_hi_brl != null && (
                       <span style={{ color: "var(--ink-mute)" }}>
                         {" "}
-                        ({brl(m.forecast_lo_brl)}–{brl(m.forecast_hi_brl)})
+                        ({brl(mo.forecast_lo_brl)}–{brl(mo.forecast_hi_brl)})
                       </span>
                     )}
                   </span>
@@ -325,6 +344,61 @@ export function VisaoGeral() {
               ))}
             </div>
           )}
+        </Panel>
+      </div>
+
+      {/* widgets de janela */}
+      <Panel
+        title="Custo líquido no tempo"
+        cap={`Barras = custo do período · linha = acumulado (eixo à direita) · tracejada = média móvel 7 dias · ${janela}.`}
+      >
+        <LoadingOrError loading={cseries.loading} error={cseries.error} />
+        <TemporalChart
+          data={cseries.data}
+          grain={series.grain}
+          groupBy={series.groupBy}
+          onChange={setSeries}
+        />
+      </Panel>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        <Panel title="Custo por serviço" cap={`Acumulado · ${janela}.`}>
+          <LoadingOrError loading={svc.loading} error={svc.error} />
+          {svc.data &&
+            (svc.data.length === 0 ? (
+              <p style={{ color: "var(--ink-mute)", fontSize: 13 }}>Sem custo no período/recorte.</p>
+            ) : (
+              <HBars
+                rows={svc.data.map((r) => ({
+                  label: r.service_description,
+                  value: r.net_cost_brl,
+                  pct: r.pct_of_total,
+                }))}
+              />
+            ))}
+        </Panel>
+
+        <Panel
+          title="Custo por app e ambiente"
+          cap="Só a fração do custo com a label preenchida (hoje ~10%). Detalhe na aba Alocação."
+        >
+          <LoadingOrError loading={byApp.loading || byEnv.loading} error={byApp.error || byEnv.error} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {byApp.data && (
+              <AllocBars
+                title="por app"
+                rows={byApp.data.rows.map((r) => ({ label: r.label_app, value: r.net_cost_brl }))}
+                unallocated={byApp.data.unallocated_net_cost_brl}
+              />
+            )}
+            {byEnv.data && (
+              <AllocBars
+                title="por ambiente"
+                rows={byEnv.data.rows.map((r) => ({ label: r.label_environment, value: r.net_cost_brl }))}
+                unallocated={byEnv.data.unallocated_net_cost_brl}
+              />
+            )}
+          </div>
         </Panel>
       </div>
     </>

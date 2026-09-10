@@ -105,23 +105,21 @@ export function MetricTile({
   label,
   value,
   sub,
-  accent,
   tone,
 }: {
   label: string;
   value: ReactNode;
   sub?: ReactNode;
-  accent?: boolean;
   tone?: "ok" | "bad" | "neutral";
 }) {
   const color = tone === "ok" ? "var(--ok)" : tone === "bad" ? "var(--bad)" : "var(--ink)";
   return (
     <div
+      className="dp6-corner"
       style={{
         background: "var(--surface)",
         border: "1px solid var(--hair)",
-        borderTop: accent ? "2px solid var(--accent)" : undefined,
-        borderRadius: 8,
+        borderRadius: "var(--radius)",
         padding: 16,
         display: "flex",
         flexDirection: "column",

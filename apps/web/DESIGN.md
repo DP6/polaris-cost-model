@@ -22,6 +22,12 @@ Nenhum token muda de valor em `src/index.css` sem este arquivo ser atualizado no
 - **Paleta de gráfico:** `--chart-net` = `--accent-blue`; `--chart-alt` = `--accent-green`;
   `--chart-other` neutro; `--chart-alert` = status error; `--chart-credit` = `--accent-purple`.
   Só o par azul/verde como série categórica (validado `dataviz`). Vermelho só status.
+- **Régua amarela em canto (`.dp6-corner`):** um "L" 2px `var(--primary)` no topo-esquerdo
+  de **todo** `.card` / `.panel` / `.chart-well` / `MetricTile` (via `::before` no
+  `index.css`). Substitui a borda-topo cheia; a prop `accent` do `MetricTile` foi removida.
+- **Captions descrevem o widget e o cálculo — nunca afirmam um fato do dado atual.** Nada de
+  "Cloud Run concentra a maior parte" ou "só DISCOUNT"; "média móvel 7 dias" / "projeção
+  linear" são ok.
 - **Aliases legados** (`--bg`, `--ink`, `--c-net`, `--ok`…) — mantidos enquanto os componentes
   antigos não migram (PR B: Tailwind v4 + shadcn). Não usar em código novo.
 
