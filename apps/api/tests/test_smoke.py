@@ -15,7 +15,10 @@ RANGE = {"from": "2026-08-10", "to": "2026-09-09"}
 ENDPOINTS = [
     ("/healthz", {}),
     ("/api/meta", {}),
+    ("/api/dimensions", {}),
     ("/api/scorecard", {}),
+    ("/api/scorecard", {"environment": "prod"}),
+    ("/api/reconciliation", {"app": "atlas"}),
     ("/api/cost/daily", RANGE),
     ("/api/cost/by-service", RANGE),
     ("/api/cost/monthly", {}),

@@ -12,6 +12,17 @@ class MetaDTO(BaseModel):
     export_ok: bool
 
 
+class DimensionsDTO(BaseModel):
+    services: list[str]
+    environments: list[str]
+    apps: list[str]
+    invoice_months: list[str]
+    data_updated_at: str
+    currency_rate: float
+    export_ok: bool
+    source_rows: int
+
+
 class ScorecardDTO(BaseModel):
     invoice_month: str
     net_cost_mtd_brl: float
