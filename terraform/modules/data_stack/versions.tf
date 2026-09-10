@@ -6,11 +6,10 @@ terraform {
       source  = "hashicorp/google"
       version = "~> 6.0"
     }
+    # google_dataform_* (repository_release_config / repository_workflow_config) são beta-only
     google-beta = {
       source  = "hashicorp/google-beta"
       version = "~> 6.0"
     }
   }
-
-  # state LOCAL — este módulo é aplicado à mão, uma vez. Ver README.
 }

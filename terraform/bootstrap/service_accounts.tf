@@ -35,8 +35,12 @@ resource "google_service_account_iam_member" "apply_wif" {
 # ---- Dataform service agent impersona a SA dedicada ----
 # (o Dataform executa os jobs BigQuery como sa-billing-dataform quando o repository/workflow_config
 #  define service_account = essa SA — ver terraform/modules e environments/)
+# usa google_project_service_identity.dataform (dataform_repo.tf) — o agent e criado sob demanda.
 resource "google_service_account_iam_member" "dataform_agent_impersonate" {
   service_account_id = google_service_account.dataform.name
   role               = "roles/iam.serviceAccountTokenCreator"
-  member             = "serviceAccount:service-${var.project_number}@gcp-sa-dataform.iam.gserviceaccount.com"
+  member             = "serviceAccount:${google_project_service_identity.dataform.email}"
+
+  # roda depois do binding do Secret (que ja confirmou que o agent propagou) — evita corrida
+  depends_on = [google_secret_manager_secret_iam_member.dataform_agent_reads_token]
 }

@@ -23,7 +23,7 @@ output "sa_dataform" {
 }
 
 output "artifact_registry" {
-  value = google_artifact_registry_repository.apps.id
+  value = data.google_artifact_registry_repository.apps.id
 }
 
 output "dataform_repository" {

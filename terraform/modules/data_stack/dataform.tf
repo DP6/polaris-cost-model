@@ -1,7 +1,7 @@
 # release_config: compila o repo no git_commitish, schema_suffix por ambiente
 # (billing_polaris_stg -> billing_polaris_stg_${env}, etc. — os .sqlx nao mudam).
 resource "google_dataform_repository_release_config" "this" {
-  provider      = google
+  provider      = google-beta
   project       = var.project_id
   region        = var.region
   repository    = var.dataform_repository
@@ -19,7 +19,7 @@ resource "google_dataform_repository_release_config" "this" {
 
 # execucao diaria — so a tag billing_polaris, com dependencias transitivas
 resource "google_dataform_repository_workflow_config" "daily" {
-  provider       = google
+  provider       = google-beta
   project        = var.project_id
   region         = var.region
   repository     = var.dataform_repository
@@ -38,7 +38,7 @@ resource "google_dataform_repository_workflow_config" "daily" {
 
 # fechamento mensal — full refresh (consolida o mes de fatura recem-fechado)
 resource "google_dataform_repository_workflow_config" "closeout" {
-  provider       = google
+  provider       = google-beta
   project        = var.project_id
   region         = var.region
   repository     = var.dataform_repository
