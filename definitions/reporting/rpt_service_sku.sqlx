@@ -5,11 +5,13 @@ config {
   description: "Dimensao service/sku + custo unitario lifetime + recencia + delta mes a mes (top movers). O custo unitario da janela filtrada a API calcula de rpt_cost_daily."
 }
 
+-- agg_billing_cost_monthly nao tem grao de sku (so service x label x cost_type).
+-- O movimento mes a mes por sku sai do fato diario.
 WITH last_two AS (
   SELECT
     service_description, sku_description, pricing_unit, invoice_month,
     SUM(net_cost_brl) AS net_cost_brl
-  FROM ${ref("agg_billing_cost_monthly")}
+  FROM ${ref("fct_billing_cost_daily")}
   GROUP BY 1,2,3,4
 ),
 mov AS (
