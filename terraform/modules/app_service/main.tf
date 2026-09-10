@@ -1,5 +1,9 @@
 terraform {
   required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "~> 6.0"
+    }
     google-beta = {
       source  = "hashicorp/google-beta"
       version = "~> 6.0"
@@ -78,12 +82,12 @@ resource "google_cloud_run_v2_service_iam_member" "iap_invoker" {
   member   = "serviceAccount:service-${var.project_number}@gcp-sa-iap.iam.gserviceaccount.com"
 }
 
-# quem pode passar pelo IAP (allowlist)
-resource "google_cloud_run_v2_service_iam_member" "iap_users" {
-  for_each = toset(var.allowed_members)
-  project  = var.project_id
-  location = var.region
-  name     = google_cloud_run_v2_service.this.name
-  role     = "roles/iap.httpsResourceAccessor"
-  member   = each.value
+# quem pode passar pelo IAP (allowlist) — no recurso IAP, nao no servico Cloud Run
+resource "google_iap_web_cloud_run_service_iam_member" "iap_users" {
+  for_each               = toset(var.allowed_members)
+  project                = var.project_id
+  location               = var.region
+  cloud_run_service_name = google_cloud_run_v2_service.this.name
+  role                   = "roles/iap.httpsResourceAccessor"
+  member                 = each.value
 }

@@ -8,6 +8,8 @@ locals {
     "roles/artifactregistry.reader",
     "roles/monitoring.viewer",
     "roles/iam.roleViewer",
+    "roles/iam.serviceAccountViewer", # refresh das SAs de runtime (billing-*-run) no plan
+    "roles/iap.admin",                # nao ha "iap viewer"; o plan le iap.webServices.getIamPolicy. Job so roda `terraform plan`.
   ]
 
   # apply: cria toda a infra dos environments (datasets, Dataform configs, Cloud Run, IAP, IAM, alertas)
@@ -41,10 +43,10 @@ resource "google_project_iam_member" "apply" {
   member   = "serviceAccount:${google_service_account.gh_apply.email}"
 }
 
-# state bucket
+# state bucket — plan precisa de write tambem (arquivo de lock .tflock)
 resource "google_storage_bucket_iam_member" "plan_state" {
   bucket = google_storage_bucket.tfstate.name
-  role   = "roles/storage.objectViewer"
+  role   = "roles/storage.objectAdmin"
   member = "serviceAccount:${google_service_account.gh_plan.email}"
 }
 

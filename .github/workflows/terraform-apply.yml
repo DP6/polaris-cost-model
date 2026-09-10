@@ -21,7 +21,7 @@ jobs:
     strategy:
       max-parallel: 1
       matrix:
-        env: [dev, prod]
+        env: [dev]
     defaults:
       run:
         working-directory: terraform/environments/${{ matrix.env }}
