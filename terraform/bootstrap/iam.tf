@@ -41,10 +41,10 @@ resource "google_project_iam_member" "apply" {
   member   = "serviceAccount:${google_service_account.gh_apply.email}"
 }
 
-# state bucket
+# state bucket — plan precisa de write tambem (arquivo de lock .tflock)
 resource "google_storage_bucket_iam_member" "plan_state" {
   bucket = google_storage_bucket.tfstate.name
-  role   = "roles/storage.objectViewer"
+  role   = "roles/storage.objectAdmin"
   member = "serviceAccount:${google_service_account.gh_plan.email}"
 }
 
