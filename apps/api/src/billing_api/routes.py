@@ -16,6 +16,7 @@ from .config import get_settings
 router = APIRouter(prefix="/api")
 S = get_settings()
 RPT = f"{S.gcp_project}.{S.reporting_dataset}"
+MART = f"{S.gcp_project}.{S.mart_dataset}"
 
 DateStr = str
 
@@ -24,34 +25,155 @@ def _pct_of_total(rows: list[dict], total: float) -> list[dict]:
     return [{**r, "pct_of_total": (r["net_cost_brl"] / total if total else 0.0)} for r in rows]
 
 
-# ---------------------------------------------------------------- meta / scorecard
+def _scope(
+    service: str | None, environment: str | None, app: str | None
+) -> tuple[str, dict]:
+    """Clausula WHERE de recorte (serviço/ambiente/app) para as views rpt_*.
+    Devolve ("" ou " AND ...", params). currency nao entra aqui (e so display)."""
+    clauses, params = [], {}
+    for col, val in (
+        ("service_description", service),
+        ("label_environment", environment),
+        ("label_app", app),
+    ):
+        if val:
+            clauses.append(f"{col} = @{col}")
+            params[col] = val
+    return (" AND " + " AND ".join(clauses) if clauses else "", params)
+
+
+def _has_scope(service: str | None, environment: str | None, app: str | None) -> bool:
+    return bool(service or environment or app)
+
+
+# ---------------------------------------------------------------- meta / dimensions / scorecard
+
+def _freshness() -> dict:
+    """Frescor + tamanho da carga a partir da camada reporting (a API só lê rpt_*/mart).
+    `fct_billing_cost_daily` não carrega `export_time` (é agregado) — usamos
+    MAX(usage_date) como proxy de "dados até". Um `rpt_meta` com o export_time real
+    fica para uma próxima rodada (specs/003)."""
+    r = query(f"""
+        SELECT
+          FORMAT_DATE('%FT00:00:00Z', MAX(usage_date)) AS data_updated_at,
+          SUM(line_count) AS source_rows
+        FROM `{MART}.fct_billing_cost_daily`
+    """)[0]
+    months = [x["invoice_month"] for x in query(
+        f"SELECT DISTINCT invoice_month FROM `{MART}.agg_billing_cost_monthly` ORDER BY 1"
+    )]
+    return {
+        "data_updated_at": r["data_updated_at"] or "",
+        "source_rows": int(r["source_rows"] or 0),
+        "invoice_months": months,
+    }
+
 
 @router.get("/meta", response_model=m.MetaDTO)
 def meta() -> m.MetaDTO:
     if mock_active():
         return m.MetaDTO(**fx.META)
-    r = query(f"""
-        SELECT
-          FORMAT_TIMESTAMP('%FT%TZ', (SELECT MAX(export_time) FROM `{S.gcp_project}.{S.mart_dataset}.fct_billing_cost_daily`)) AS data_updated_at
-    """)
-    months = [x["invoice_month"] for x in query(
-        f"SELECT DISTINCT invoice_month FROM `{S.gcp_project}.{S.mart_dataset}.agg_billing_cost_monthly` ORDER BY 1"
+    fr = _freshness()
+    return m.MetaDTO(export_ok=True, **fr)
+
+
+@router.get("/dimensions", response_model=m.DimensionsDTO)
+def dimensions() -> m.DimensionsDTO:
+    """Valores das listas de filtro (Serviço/Ambiente/App) + frescor + taxa de cambio."""
+    if mock_active():
+        return m.DimensionsDTO(**fx.DIMENSIONS)
+    services = [r["v"] for r in query(
+        f"SELECT DISTINCT service_description v FROM `{RPT}.rpt_cost_daily` "
+        f"WHERE service_description IS NOT NULL ORDER BY 1"
     )]
-    rows = query(f"SELECT SUM(line_count) n FROM `{S.gcp_project}.{S.mart_dataset}.fct_billing_cost_daily`")
-    return m.MetaDTO(
-        data_updated_at=r[0]["data_updated_at"] or "",
-        source_rows=int(rows[0]["n"] or 0),
-        invoice_months=months,
+    environments = [r["v"] for r in query(
+        f"SELECT DISTINCT label_environment v FROM `{RPT}.rpt_cost_daily` "
+        f"WHERE label_environment IS NOT NULL AND label_environment != '' ORDER BY 1"
+    )]
+    apps = [r["v"] for r in query(
+        f"SELECT DISTINCT label_app v FROM `{RPT}.rpt_cost_daily` "
+        f"WHERE label_app IS NOT NULL AND label_app != '' ORDER BY 1"
+    )]
+    fr = _freshness()
+    rate_rows = query(
+        f"SELECT SAFE_DIVIDE(SUM(gross_cost_brl), NULLIF(SUM(gross_cost_usd), 0)) r "
+        f"FROM `{RPT}.rpt_cost_daily` "
+        f"WHERE usage_date >= DATE_SUB(CURRENT_DATE('America/Sao_Paulo'), INTERVAL 45 DAY)"
+    )
+    return m.DimensionsDTO(
+        services=services,
+        environments=environments,
+        apps=apps,
+        invoice_months=fr["invoice_months"],
+        data_updated_at=fr["data_updated_at"],
+        currency_rate=float((rate_rows[0]["r"] if rate_rows else 0.0) or 0.0),
         export_ok=True,
+        source_rows=fr["source_rows"],
     )
 
 
 @router.get("/scorecard", response_model=m.ScorecardDTO)
-def scorecard(currency: str = "BRL") -> m.ScorecardDTO:
+def scorecard(
+    currency: str = "BRL",
+    service: str | None = None,
+    environment: str | None = None,
+    app: str | None = None,
+) -> m.ScorecardDTO:
     if mock_active():
         return m.ScorecardDTO(**fx.SCORECARD)
-    r = query(f"SELECT * FROM `{RPT}.rpt_cost_scorecard`")[0]
-    return m.ScorecardDTO(**r)
+    if not _has_scope(service, environment, app):
+        r = query(f"SELECT * FROM `{RPT}.rpt_cost_scorecard`")[0]
+        return m.ScorecardDTO(**r)
+
+    # recorte ativo -> recomputa de rpt_cost_daily (MTD) + rpt_cost_monthly (mes anterior)
+    where, params = _scope(service, environment, app)
+    cur = query(f"""
+        SELECT
+          SUM(net_cost_brl)   AS net_mtd_brl,
+          SUM(net_cost_usd)   AS net_mtd_usd,
+          SUM(gross_cost_brl) AS gross_mtd_brl,
+          SUM(credits_total_brl) AS credits_mtd_brl
+        FROM `{RPT}.rpt_cost_daily`
+        WHERE FORMAT_DATE('%Y%m', usage_date) = FORMAT_DATE('%Y%m', CURRENT_DATE('America/Sao_Paulo'))
+          {where}
+    """, params)[0]
+    prev = query(f"""
+        SELECT SUM(net_cost_brl) AS net_prev_brl
+        FROM `{RPT}.rpt_cost_monthly`
+        WHERE invoice_month = FORMAT_DATE('%Y%m', DATE_SUB(DATE_TRUNC(CURRENT_DATE('America/Sao_Paulo'), MONTH), INTERVAL 1 DAY))
+          {where}
+    """, params)[0]
+    cal = query("""
+        SELECT
+          EXTRACT(DAY FROM CURRENT_DATE('America/Sao_Paulo')) AS days_elapsed,
+          EXTRACT(DAY FROM LAST_DAY(CURRENT_DATE('America/Sao_Paulo'))) AS days_in_month,
+          FORMAT_DATE('%Y%m', CURRENT_DATE('America/Sao_Paulo')) AS invoice_month
+    """)[0]
+
+    net_mtd = float(cur["net_mtd_brl"] or 0.0)
+    gross_mtd = float(cur["gross_mtd_brl"] or 0.0)
+    credits_mtd = float(cur["credits_mtd_brl"] or 0.0)
+    net_prev = float(prev["net_prev_brl"] or 0.0)
+    days_elapsed = int(cal["days_elapsed"] or 1) or 1
+    days_in_month = int(cal["days_in_month"] or 30)
+    run_rate = net_mtd / days_elapsed * days_in_month
+    budget = S.monthly_budget_brl
+    return m.ScorecardDTO(
+        invoice_month=cal["invoice_month"],
+        net_cost_mtd_brl=net_mtd,
+        net_cost_mtd_usd=float(cur["net_mtd_usd"] or 0.0),
+        gross_cost_mtd_brl=gross_mtd,
+        credits_mtd_brl=credits_mtd,
+        prev_month_net_brl=net_prev,
+        mom_pct=((run_rate - net_prev) / net_prev) if net_prev else 0.0,
+        run_rate_eom_brl=run_rate,
+        days_elapsed=days_elapsed,
+        days_in_month=days_in_month,
+        budget_brl=budget,
+        budget_used_pct=(net_mtd / budget) if budget else 0.0,
+        run_rate_vs_budget_pct=(run_rate / budget) if budget else 0.0,
+        effective_savings_pct=((-credits_mtd / gross_mtd) if gross_mtd else 0.0),
+    )
 
 
 # ---------------------------------------------------------------- cost
@@ -123,24 +245,35 @@ def cost_monthly(
 
 
 @router.get("/reconciliation", response_model=list[m.ReconRowDTO])
-def reconciliation(currency: str = "BRL") -> list[m.ReconRowDTO]:
+def reconciliation(
+    currency: str = "BRL",
+    service: str | None = None,
+    environment: str | None = None,
+    app: str | None = None,
+) -> list[m.ReconRowDTO]:
     if mock_active():
         return [m.ReconRowDTO(invoice_month=ym, gross_cost_brl=g, credits_total_brl=cr,
                               net_cost_brl=n, matches_invoice=True)
                 for ym, _, _, _, g, cr, n in fx.MONTHS]
+    where, params = _scope(service, environment, app)
     rows = query(f"""
         SELECT invoice_month, SUM(gross_cost_brl) gross_cost_brl,
                SUM(credits_total_brl) credits_total_brl, SUM(net_cost_brl) net_cost_brl
-        FROM `{RPT}.rpt_cost_monthly` GROUP BY 1 ORDER BY 1
-    """)
+        FROM `{RPT}.rpt_cost_monthly` WHERE TRUE {where} GROUP BY 1 ORDER BY 1
+    """, params)
     return [m.ReconRowDTO(**r, matches_invoice=True) for r in rows]
 
 
 # ---------------------------------------------------------------- budget & forecast
 
 @router.get("/budget", response_model=m.BudgetDTO)
-def budget(currency: str = "BRL") -> m.BudgetDTO:
-    sc = scorecard(currency)
+def budget(
+    currency: str = "BRL",
+    service: str | None = None,
+    environment: str | None = None,
+    app: str | None = None,
+) -> m.BudgetDTO:
+    sc = scorecard(currency, service, environment, app)
     thresholds = [m.ThresholdDTO(pct=p, value_brl=S.monthly_budget_brl * p) for p in S.budget_thresholds]
     breach: str | None = None
     if mock_active():
@@ -183,7 +316,16 @@ def burndown(month: str | None = None, currency: str = "BRL") -> list[m.Burndown
 
 
 @router.get("/forecast", response_model=list[m.ForecastMonthDTO])
-def forecast(horizon: int = 3, currency: str = "BRL") -> list[m.ForecastMonthDTO]:
+def forecast(
+    horizon: int = 3,
+    currency: str = "BRL",
+    service: str | None = None,
+    environment: str | None = None,
+    app: str | None = None,
+) -> list[m.ForecastMonthDTO]:
+    # rpt_forecast_monthly nao tem grao de serviço/label — a previsao fica projeto-inteiro
+    # por ora (os params sao aceitos para uniformidade da FilterBar). Ver specs/004.
+    _ = (service, environment, app)
     if mock_active():
         return [
             m.ForecastMonthDTO(invoice_month="202608", is_actual=True, value_brl=23.65,

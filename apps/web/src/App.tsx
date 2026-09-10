@@ -1,15 +1,18 @@
-import { useEffect, useState } from "react";
-import { NavLink, Route, Routes, useSearchParams } from "react-router-dom";
+import { useState } from "react";
+import { NavLink, Route, Routes } from "react-router-dom";
 import { useApi } from "./lib/api";
-import type { Meta } from "./types";
-import { VisaoGeral } from "./screens/VisaoGeral";
-import { Orcamento } from "./screens/Orcamento";
-import { Tendencia } from "./screens/Tendencia";
+import { relativeToNow } from "./lib/format";
+import { type Filters, PERIOD_LABELS, type Period, hasActiveFilters, useFilters } from "./lib/useFilters";
+import { useTheme } from "./lib/useTheme";
 import { Alocacao } from "./screens/Alocacao";
-import { Servicos } from "./screens/Servicos";
-import { Otimizacao } from "./screens/Otimizacao";
-import { UnitEconomicsScreen } from "./screens/UnitEconomics";
 import { Anomalias } from "./screens/Anomalias";
+import { Orcamento } from "./screens/Orcamento";
+import { Otimizacao } from "./screens/Otimizacao";
+import { Servicos } from "./screens/Servicos";
+import { Tendencia } from "./screens/Tendencia";
+import { UnitEconomicsScreen } from "./screens/UnitEconomics";
+import { VisaoGeral } from "./screens/VisaoGeral";
+import type { Dimensions, Meta } from "./types";
 
 const TABS = [
   ["/", "Visão geral", VisaoGeral],
@@ -22,46 +25,36 @@ const TABS = [
   ["/anomalias", "Anomalias", Anomalias],
 ] as const;
 
-function useTheme(): [string | null, () => void] {
-  const [theme, setTheme] = useState<string | null>(() => {
-    try {
-      return localStorage.getItem("pcm-theme");
-    } catch {
-      return null;
-    }
-  });
-  useEffect(() => {
-    const el = document.documentElement;
-    if (theme) el.setAttribute("data-theme", theme);
-    else el.removeAttribute("data-theme");
-    try {
-      theme ? localStorage.setItem("pcm-theme", theme) : localStorage.removeItem("pcm-theme");
-    } catch {
-      /* private mode */
-    }
-  }, [theme]);
-  const toggle = () => {
-    const sysDark = matchMedia("(prefers-color-scheme: dark)").matches;
-    setTheme((t) => (t ? (t === "dark" ? "light" : "dark") : sysDark ? "light" : "dark"));
-  };
-  return [theme, toggle];
-}
+const eyebrow = {
+  font: "500 10px/1 Ubuntu, sans-serif",
+  letterSpacing: ".18em",
+  textTransform: "uppercase" as const,
+  color: "var(--muted-foreground)",
+};
+const selectStyle = {
+  padding: "7px 10px",
+  background: "var(--card)",
+  color: "var(--foreground)",
+  border: "1px solid var(--border-strong)",
+  borderRadius: "var(--radius)",
+  minWidth: 130,
+};
 
 function TopBar() {
-  const [, toggle] = useTheme();
+  const { theme, toggle } = useTheme();
   const meta = useApi<Meta>("/meta");
   return (
     <header
       style={{
         position: "sticky",
         top: 0,
-        zIndex: 20,
+        zIndex: 30,
         display: "flex",
         alignItems: "center",
         gap: 14,
         height: 52,
         padding: "0 28px",
-        background: "var(--ink)",
+        background: "#1d1d1b",
         color: "#f2f1ec",
       }}
     >
@@ -73,53 +66,185 @@ function TopBar() {
       <span style={{ fontWeight: 500 }}>CI Polaris</span>
       <span style={{ color: "#a7abb0", fontSize: 13 }}>· controle de custo</span>
       <span style={{ flex: 1 }} />
-      {meta.data && (
-        <span className="mono" style={{ fontSize: 11, color: "#d9d6cc", border: "1px solid #4a4a44", borderRadius: 999, padding: "4px 9px" }}>
-          dados de {new Date(meta.data.data_updated_at).toLocaleString("pt-BR")}
+      {meta.data?.data_updated_at && (
+        <span
+          className="mono"
+          style={{
+            fontSize: 11,
+            color: "#d9d6cc",
+            border: "1px solid #4a4a44",
+            borderRadius: 999,
+            padding: "4px 9px",
+          }}
+          title={new Date(meta.data.data_updated_at).toLocaleString("pt-BR")}
+        >
+          dados {relativeToNow(meta.data.data_updated_at)}
         </span>
       )}
       <button
+        type="button"
         onClick={toggle}
         aria-label="Alternar tema"
-        style={{ width: 34, height: 34, background: "transparent", border: "1px solid #4a4a44", borderRadius: 4, cursor: "pointer", color: "#f2f1ec" }}
+        style={{
+          width: 34,
+          height: 34,
+          background: "transparent",
+          border: "1px solid #4a4a44",
+          borderRadius: "var(--radius)",
+          cursor: "pointer",
+          color: "#f2f1ec",
+        }}
       >
-        ☾
+        {theme === "dark" ? "☀" : "☾"}
       </button>
     </header>
   );
 }
 
-function FilterBar() {
-  const [sp, setSp] = useSearchParams();
-  const set = (k: string, v: string) => {
-    const n = new URLSearchParams(sp);
-    v ? n.set(k, v) : n.delete(k);
-    setSp(n, { replace: true });
-  };
-  const field = (label: string, key: string, opts: string[]) => (
-    <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      <span style={{ font: "500 10px/1 Ubuntu, sans-serif", letterSpacing: ".18em", textTransform: "uppercase", color: "var(--ink-dim)" }}>{label}</span>
-      <select
-        value={sp.get(key) ?? ""}
-        onChange={(e) => set(key, e.target.value)}
-        style={{ padding: "7px 10px", background: "var(--surface)", border: "1px solid var(--hair-strong)", borderRadius: 4, minWidth: 130 }}
-      >
-        {opts.map((o) => (
-          <option key={o} value={o === "Todos" || o === "Últimos 30 dias" ? "" : o}>
-            {o}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: "14px 22px", padding: "14px 28px", background: "var(--well)", borderBottom: "1px solid var(--hair)" }}>
-      {field("Ambiente", "environment", ["Todos", "prod", "dev"])}
-      {field("App", "app", ["Todos", "atlas", "polaris-cost-control", "observability-hub"])}
-      {field("Moeda", "currency", ["BRL", "USD"])}
-      <p style={{ marginLeft: "auto", alignSelf: "center", fontSize: 12, color: "var(--ink-mute)", maxWidth: 260 }}>
-        Filtros na URL — links compartilháveis. Período: últimos 30 dias.
-      </p>
+    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <span style={eyebrow}>{label}</span>
+      {children}
+    </div>
+  );
+}
+
+function FilterBar() {
+  const [f, setF] = useFilters();
+  const dims = useApi<Dimensions>("/dimensions");
+  const [customOpen, setCustomOpen] = useState(f.period === "custom");
+
+  const pick = (key: keyof Filters, value: string) => setF({ [key]: value } as Partial<Filters>);
+
+  return (
+    <div
+      style={{
+        position: "sticky",
+        top: 52,
+        zIndex: 20,
+        display: "flex",
+        flexWrap: "wrap",
+        alignItems: "flex-end",
+        gap: "12px 20px",
+        padding: "12px 28px",
+        background: "var(--muted)",
+        borderBottom: "1px solid var(--border)",
+      }}
+    >
+      <Field label="Período">
+        <select
+          value={f.period}
+          onChange={(e) => {
+            const p = e.target.value as Period;
+            setCustomOpen(p === "custom");
+            setF({ period: p });
+          }}
+          style={selectStyle}
+        >
+          {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
+            <option key={p} value={p}>
+              {PERIOD_LABELS[p]}
+            </option>
+          ))}
+        </select>
+      </Field>
+
+      {customOpen && (
+        <>
+          <Field label="De">
+            <input
+              type="date"
+              value={f.from ?? ""}
+              onChange={(e) => setF({ period: "custom", from: e.target.value })}
+              style={selectStyle}
+            />
+          </Field>
+          <Field label="Até">
+            <input
+              type="date"
+              value={f.to ?? ""}
+              onChange={(e) => setF({ period: "custom", to: e.target.value })}
+              style={selectStyle}
+            />
+          </Field>
+        </>
+      )}
+
+      <Field label="Serviço">
+        <select value={f.service ?? ""} onChange={(e) => pick("service", e.target.value)} style={selectStyle}>
+          <option value="">Todos</option>
+          {(dims.data?.services ?? []).map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
+      </Field>
+
+      <Field label="Ambiente">
+        <select
+          value={f.environment ?? ""}
+          onChange={(e) => pick("environment", e.target.value)}
+          style={selectStyle}
+        >
+          <option value="">Todos</option>
+          {(dims.data?.environments ?? []).map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
+      </Field>
+
+      <Field label="App">
+        <select value={f.app ?? ""} onChange={(e) => pick("app", e.target.value)} style={selectStyle}>
+          <option value="">Todos</option>
+          {(dims.data?.apps ?? []).map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
+      </Field>
+
+      <Field label="Moeda">
+        <select value={f.currency} onChange={(e) => pick("currency", e.target.value)} style={selectStyle}>
+          <option value="BRL">BRL</option>
+          <option value="USD">USD</option>
+        </select>
+      </Field>
+
+      {hasActiveFilters(f) && (
+        <button
+          type="button"
+          onClick={() => {
+            setCustomOpen(false);
+            setF({
+              period: "mes",
+              from: undefined,
+              to: undefined,
+              service: "",
+              environment: "",
+              app: "",
+              currency: "BRL",
+            });
+          }}
+          style={{
+            marginLeft: "auto",
+            alignSelf: "center",
+            padding: "7px 12px",
+            background: "transparent",
+            border: "1px solid var(--border-strong)",
+            borderRadius: "var(--radius)",
+            color: "var(--muted-foreground)",
+            cursor: "pointer",
+            fontSize: 12.5,
+          }}
+        >
+          Limpar filtros
+        </button>
+      )}
     </div>
   );
 }
@@ -129,35 +254,61 @@ export default function App() {
     <>
       <TopBar />
       <FilterBar />
-      <nav style={{ display: "flex", padding: "0 20px", borderBottom: "1px solid var(--hair)", overflowX: "auto" }}>
+      <nav
+        style={{
+          display: "flex",
+          padding: "0 20px",
+          borderBottom: "1px solid var(--border)",
+          overflowX: "auto",
+          background: "var(--background)",
+        }}
+      >
         {TABS.map(([to, label]) => (
           <NavLink
             key={to}
             to={to}
             end={to === "/"}
             style={({ isActive }) => ({
-              padding: "14px 13px 12px",
+              padding: "13px 13px 11px",
               whiteSpace: "nowrap",
               fontSize: 14,
               textDecoration: "none",
-              color: isActive ? "var(--ink)" : "var(--ink-dim)",
+              color: isActive ? "var(--foreground)" : "var(--muted-foreground)",
               fontWeight: isActive ? 500 : 400,
-              borderBottom: `2px solid ${isActive ? "var(--accent)" : "transparent"}`,
+              borderBottom: `2px solid ${isActive ? "var(--primary)" : "transparent"}`,
             })}
           >
             {label}
           </NavLink>
         ))}
       </nav>
-      <main style={{ maxWidth: 1180, margin: "0 auto", padding: 28, display: "flex", flexDirection: "column", gap: 24 }}>
+      <main
+        style={{
+          maxWidth: 1400,
+          margin: "0 auto",
+          padding: "28px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 32,
+        }}
+      >
         <Routes>
           {TABS.map(([to, , Comp]) => (
             <Route key={to} path={to} element={<Comp />} />
           ))}
         </Routes>
       </main>
-      <footer style={{ borderTop: "1px solid var(--hair)", background: "var(--ink)", color: "#a7abb0", padding: "16px 28px", font: '400 11.5px/1.5 "Ubuntu Mono", monospace' }}>
-        polaris-cost-model / apps/web · painel FinOps do CI Polaris · dados via apps/api (rpt_* no BigQuery, ou modo mock)
+      <footer
+        style={{
+          borderTop: "1px solid var(--border)",
+          background: "#1d1d1b",
+          color: "#a7abb0",
+          padding: "16px 28px",
+          font: '400 11.5px/1.5 "Ubuntu Mono", monospace',
+        }}
+      >
+        polaris-cost-model / apps/web · painel FinOps do CI Polaris · dados via apps/api (rpt_* no BigQuery,
+        ou modo mock)
       </footer>
     </>
   );

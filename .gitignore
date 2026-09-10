@@ -24,3 +24,4 @@ mock/painel-finops-ci-polaris.html
 
 # OS
 .DS_Store
+apps/api/uv.lock

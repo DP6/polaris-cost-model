@@ -10,8 +10,103 @@ export function Card({ title, cap, children }: { title?: string; cap?: string; c
   );
 }
 
+/** Bloco nomeado (espelha o `Panel` do Atlas). Um `<h3>` real + caption opcional + slot de acoes. */
+export function Panel({
+  title,
+  cap,
+  actions,
+  children,
+}: {
+  title?: string;
+  cap?: string;
+  actions?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section className="panel">
+      {(title || actions) && (
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
+          {title && <h3>{title}</h3>}
+          {actions}
+        </div>
+      )}
+      {cap && <p className="cap">{cap}</p>}
+      {children}
+    </section>
+  );
+}
+
+/** Cabecalho de rota — um <h1> por tela (espelha o `PageHeader` do Atlas). */
+export function PageHeader({
+  eyebrow,
+  title,
+  desc,
+  actions,
+}: {
+  eyebrow?: ReactNode;
+  title: string;
+  desc?: ReactNode;
+  actions?: ReactNode;
+}) {
+  return (
+    <header style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+        {eyebrow && <span className="eyebrow">{eyebrow}</span>}
+        <h1 style={{ fontSize: "var(--text-display)", lineHeight: 1.2 }}>{title}</h1>
+        {desc && (
+          <p
+            style={{ margin: "2px 0 0", color: "var(--muted-foreground)", fontSize: 13.5, maxWidth: "72ch" }}
+          >
+            {desc}
+          </p>
+        )}
+      </div>
+      {actions}
+    </header>
+  );
+}
+
+/** Estado sempre com icone + texto, nunca so cor (WCAG 1.4.1). */
+export function StatusBadge({
+  tone,
+  children,
+}: {
+  tone: "ok" | "warn" | "error" | "neutral";
+  children: ReactNode;
+}) {
+  const map = {
+    ok: { fg: "var(--status-ok-foreground)", fill: "var(--status-ok)", mark: "✓" },
+    warn: { fg: "var(--status-warn-foreground)", fill: "var(--status-warn)", mark: "▲" },
+    error: { fg: "var(--status-error-foreground)", fill: "var(--status-error)", mark: "✕" },
+    neutral: { fg: "var(--muted-foreground)", fill: "var(--muted-foreground)", mark: "•" },
+  }[tone];
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
+        alignSelf: "flex-start",
+        padding: "3px 8px",
+        borderRadius: 999,
+        fontSize: 11.5,
+        fontWeight: 500,
+        color: map.fg,
+        background: `color-mix(in srgb, ${map.fill} 14%, transparent)`,
+      }}
+    >
+      <span aria-hidden="true">{map.mark}</span>
+      {children}
+    </span>
+  );
+}
+
 export function MetricTile({
-  label, value, sub, accent, tone,
+  label,
+  value,
+  sub,
+  accent,
+  tone,
 }: {
   label: string;
   value: ReactNode;
@@ -85,9 +180,10 @@ export function Chip({ tone, children }: { tone: "ok" | "warn" | "bad"; children
 }
 
 export function DataTable<T>({
-  cols, rows,
+  cols,
+  rows,
 }: {
-  cols: { key: string; label: string; num?: boolean; render: (r: T) => ReactNode }[];
+  cols: { key: string; label: string; num?: boolean; render: (r: T, i: number) => ReactNode }[];
   rows: T[];
 }) {
   return (
@@ -105,7 +201,7 @@ export function DataTable<T>({
             <tr key={i}>
               {cols.map((c) => (
                 <td key={c.key} className={c.num ? "num" : undefined}>
-                  {c.render(r)}
+                  {c.render(r, i)}
                 </td>
               ))}
             </tr>
@@ -117,8 +213,7 @@ export function DataTable<T>({
 }
 
 export function LoadingOrError({ loading, error }: { loading?: boolean; error?: string }) {
-  if (error)
-    return <div style={{ color: "var(--bad)", fontSize: 13 }}>Erro ao carregar: {error}</div>;
+  if (error) return <div style={{ color: "var(--bad)", fontSize: 13 }}>Erro ao carregar: {error}</div>;
   if (loading) return <div style={{ color: "var(--ink-mute)", fontSize: 13 }}>Carregando…</div>;
   return null;
 }

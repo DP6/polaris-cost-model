@@ -35,6 +35,17 @@ META = {
     "export_ok": True,
 }
 
+DIMENSIONS = {
+    "services": [s for s, _ in SERVICES],
+    "environments": ["prod", "dev"],
+    "apps": ["atlas", "polaris-cost-control", "observability-hub"],
+    "invoice_months": ["202607", "202608", "202609"],
+    "data_updated_at": META["data_updated_at"],
+    "currency_rate": RATE,
+    "export_ok": True,
+    "source_rows": META["source_rows"],
+}
+
 SCORECARD = {
     "invoice_month": "202609",
     "net_cost_mtd_brl": 2.19,

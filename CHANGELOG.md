@@ -2,6 +2,29 @@
 
 Formato: o que foi feito, decisões, erros/aprendizados, status. Data em ordem decrescente.
 
+## 2026-09-10 — UX dos dashboards (PR A: modelo + Visão Geral)
+
+- `specs/004-ux-dashboards.md` — modelo de período (presets `Mês corrente` · 30d · 90d · Este
+  ano · Personalizado; widgets mês-âncora ignoram o período mas respeitam Serviço/Ambiente/App),
+  comportamento dos filtros (tudo parametrizado, valores de `/api/dimensions`, estado na URL +
+  `pcm:filters`), fundação de DS (espelhar o `atlas/apps/frontend` — Tailwind v4 + shadcn +
+  TanStack + dark-default), Visão Geral item a item, checklist de replicação das 7 abas.
+- **Faseado:** PR A = tokens/visual + FilterBar + Visão Geral no stack leve atual;
+  PR B = swap de framework (Tailwind v4 + shadcn + TanStack).
+- `apps/web/src/index.css` — re-base dos tokens para os valores do Atlas (`--background`,
+  `--foreground`, `--card`, `--primary`, `--status-*`, `--accent-*`, `--text-*`, `--radius` 5px),
+  **dark por padrão** (`:root` claro / `.dark` escuro; script bloqueante em `index.html`;
+  `src/lib/useTheme.ts`). Aliases legados mantidos. `apps/web/DESIGN.md`.
+- `apps/web` — `FilterBar` global nova (Período com presets + range custom · Serviço ·
+  Ambiente · App de `/api/dimensions` · Moeda · Limpar filtros), `useFilters` com
+  `resolveWindow`/`scopeParams`, `PageHeader`/`Panel`/`StatusBadge` locais, **Visão Geral
+  reconstruída** (tira de saúde dos dados, scorecard filtro-aware, reconciliação "(parcial)").
+- `apps/api` — `GET /api/dimensions` (`DimensionsDTO`); `/scorecard`, `/reconciliation`,
+  `/budget` aceitam `service`/`environment`/`app` e recalculam de `rpt_cost_daily`/
+  `rpt_cost_monthly`; `/forecast` aceita os params (projeto-inteiro por ora — view sem grão).
+  `meta()` corrigido: `fct_billing_cost_daily` não tem `export_time` (é agregado) → frescor por
+  `MAX(usage_date)` como proxy (um `rpt_meta` com o timestamp real fica p/ depois).
+
 ## 2026-09-09 — Fases 1 a 7 (rascunho completo)
 
 ### Fase 1 — Spec de indicadores
