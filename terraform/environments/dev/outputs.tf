@@ -1,8 +1,5 @@
-output "api_uri" {
+output "app_uri" {
   value = module.api.uri
-}
-output "web_uri" {
-  value = module.web.uri
 }
 output "api_runtime_sa" {
   value = module.api.runtime_sa_email

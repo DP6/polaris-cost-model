@@ -33,10 +33,6 @@ variable "api_image" {
   type    = string
   default = "us-docker.pkg.dev/cloudrun/container/hello"
 }
-variable "web_image" {
-  type    = string
-  default = "us-docker.pkg.dev/cloudrun/container/hello"
-}
 
 variable "iap_allowed_members" {
   type    = list(string)

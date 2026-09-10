@@ -30,23 +30,10 @@ module "api" {
   }
 }
 
-# ---- WEB (billing-web-dev) ----
-module "web" {
-  source = "../../modules/app_service"
-
-  project_id     = var.project_id
-  project_number = var.project_number
-  region         = var.region
-  env            = local.env
-
-  name            = "billing-web"
-  image           = var.web_image
-  allowed_members = var.iap_allowed_members
-
-  env_vars = {
-    API_UPSTREAM = module.api.uri # nginx faz proxy de /api/ para o Cloud Run da API
-  }
-}
+# A partir de 2026-09-10: servico unico. A imagem da API embute o build do SPA
+# (apps/web) e o FastAPI serve o front + /api. Uma so porta de IAP -- o desenho
+# de 2 servicos (web + api) atras de IAP nao funcionava (proxy server-side do
+# nginx nao carrega a identidade do IAP -> 401). ADR-008.
 
 # ---- Camada de dados (datasets + Dataform configs + alerta) ----
 module "data_stack" {
