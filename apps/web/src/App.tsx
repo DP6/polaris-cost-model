@@ -1,8 +1,15 @@
 import { useState } from "react";
-import { NavLink, Route, Routes } from "react-router-dom";
+import { NavLink, Route, Routes, useSearchParams } from "react-router-dom";
 import { useApi } from "./lib/api";
 import { relativeToNow } from "./lib/format";
-import { type Filters, PERIOD_LABELS, type Period, hasActiveFilters, useFilters } from "./lib/useFilters";
+import {
+  type Filters,
+  PERIOD_LABELS,
+  type Period,
+  hasActiveFilters,
+  resolveWindow,
+  useFilters,
+} from "./lib/useFilters";
 import { useTheme } from "./lib/useTheme";
 import { Alocacao } from "./screens/Alocacao";
 import { Anomalias } from "./screens/Anomalias";
@@ -138,7 +145,13 @@ function FilterBar() {
           onChange={(e) => {
             const p = e.target.value as Period;
             setCustomOpen(p === "custom");
-            setF({ period: p });
+            if (p === "custom") {
+              // semeia as datas com a janela atual — evita campos vazios / query sem datas
+              const w = resolveWindow(f);
+              setF({ period: "custom", from: f.from ?? w.from, to: f.to ?? w.to });
+            } else {
+              setF({ period: p });
+            }
           }}
           style={selectStyle}
         >
@@ -282,22 +295,7 @@ export default function App() {
           </NavLink>
         ))}
       </nav>
-      <main
-        style={{
-          maxWidth: 1400,
-          margin: "0 auto",
-          padding: "28px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 32,
-        }}
-      >
-        <Routes>
-          {TABS.map(([to, , Comp]) => (
-            <Route key={to} path={to} element={<Comp />} />
-          ))}
-        </Routes>
-      </main>
+      <Screens />
       <footer
         style={{
           borderTop: "1px solid var(--border)",
@@ -311,5 +309,30 @@ export default function App() {
         ou modo mock)
       </footer>
     </>
+  );
+}
+
+/** Assina a querystring aqui para que a tela roteada re-renderize quando um filtro
+ *  muda (o elemento <Comp/> criado num App que não re-renderiza seria estável e o
+ *  React poderia pular a atualização da tela). */
+function Screens() {
+  useSearchParams();
+  return (
+    <main
+      style={{
+        maxWidth: 1400,
+        margin: "0 auto",
+        padding: "28px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 32,
+      }}
+    >
+      <Routes>
+        {TABS.map(([to, , Comp]) => (
+          <Route key={to} path={to} element={<Comp />} />
+        ))}
+      </Routes>
+    </main>
   );
 }

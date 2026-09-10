@@ -11,23 +11,41 @@ import {
 } from "../components/ui";
 import { useApi } from "../lib/api";
 import { brl, dayLabel, monthLabel, monthLong, pct, pctPlain, relativeToNow, usd } from "../lib/format";
-import { filterParams, PERIOD_LABELS, resolveWindow, scopeParams, useFilters } from "../lib/useFilters";
-import type { DailyPoint, Dimensions, ReconRow, Scorecard, ServiceCost } from "../types";
+import { filterParams, resolveWindow, scopeParams, useFilters } from "../lib/useFilters";
+import type {
+  Budget,
+  BurndownPoint,
+  DailyPoint,
+  Dimensions,
+  ForecastMonth,
+  ReconRow,
+  Scorecard,
+  ServiceCost,
+} from "../types";
+
+const brDate = (iso: string) => {
+  const [, m, d] = iso.split("-");
+  return `${d}/${m}`;
+};
 
 export function VisaoGeral() {
   const [f] = useFilters();
   const win = resolveWindow(f);
+  const janela = `${brDate(win.from)} a ${brDate(win.to)}`;
+
   const dims = useApi<Dimensions>("/dimensions");
   const sc = useApi<Scorecard>("/scorecard", scopeParams(f));
   const daily = useApi<DailyPoint[]>("/cost/daily", filterParams(f));
   const svc = useApi<ServiceCost[]>("/cost/by-service", filterParams(f));
   const recon = useApi<ReconRow[]>("/reconciliation", scopeParams(f));
+  const budget = useApi<Budget>("/budget", scopeParams(f));
+  const burndown = useApi<BurndownPoint[]>("/budget/burndown", { currency: f.currency });
+  const forecast = useApi<ForecastMonth[]>("/forecast", { horizon: "3", currency: f.currency });
 
   const s = sc.data;
   const d = dims.data;
   const nowIso = new Date().toISOString();
   const stale = d?.data_updated_at && Date.now() - new Date(d.data_updated_at).getTime() > 36 * 3600 * 1000;
-  const janela = f.period === "custom" ? `${win.from} a ${win.to}` : PERIOD_LABELS[f.period].toLowerCase();
 
   return (
     <>
@@ -82,7 +100,7 @@ export function VisaoGeral() {
 
       <LoadingOrError loading={sc.loading} error={sc.error} />
       {s && (
-        <MetricGrid>
+        <MetricGrid cols={6}>
           <MetricTile
             label="Custo líquido · MTD"
             value={f.currency === "USD" ? usd(s.net_cost_mtd_usd) : brl(s.net_cost_mtd_brl)}
@@ -151,7 +169,7 @@ export function VisaoGeral() {
             ))}
         </Panel>
 
-        <Panel title="Custo por serviço" cap="Acumulado no período. Cloud Run concentra a maior parte.">
+        <Panel title="Custo por serviço" cap={`Acumulado · ${janela}. Cloud Run concentra a maior parte.`}>
           <LoadingOrError loading={svc.loading} error={svc.error} />
           {svc.data &&
             (svc.data.length === 0 ? (
@@ -210,6 +228,105 @@ export function VisaoGeral() {
           />
         )}
       </Panel>
+
+      {/* ---- Orçamento do mês (ex-aba Orçamento — specs/005 §1) ---- */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 2, marginTop: 4 }}>
+        <span className="eyebrow">Orçamento do mês · {brl(budget.data?.budget_brl ?? 20)}</span>
+        <h2 style={{ fontSize: 18 }}>Orçamento &amp; previsão</h2>
+      </div>
+
+      <LoadingOrError loading={budget.loading} error={budget.error} />
+      {budget.data && (
+        <MetricGrid cols={4}>
+          <MetricTile
+            label="Consumido · MTD"
+            value={brl(budget.data.net_cost_mtd_brl)}
+            sub={pctPlain(budget.data.budget_used_pct)}
+          />
+          <MetricTile
+            label="Projeção fim de mês"
+            value={brl(budget.data.run_rate_eom_brl)}
+            sub={`${pctPlain(budget.data.run_rate_vs_budget_pct)} · run-rate linear`}
+          />
+          <MetricTile
+            label="Folga projetada"
+            value={brl(budget.data.headroom_brl)}
+            tone={budget.data.headroom_brl >= 0 ? "ok" : "bad"}
+            sub="orçamento − projeção"
+          />
+          <MetricTile
+            label="Estouro projetado"
+            value={budget.data.projected_breach_date ?? "sem estouro"}
+            sub="no ritmo atual"
+          />
+        </MetricGrid>
+      )}
+
+      <div style={{ display: "grid", gridTemplateColumns: "1.55fr 1fr", gap: 16 }}>
+        <Panel
+          title="Consumo acumulado vs. orçamento"
+          cap="Linha = realizado (MTD) · tracejada = orçamento. Thresholds 50/80/100/120% no gráfico completo (PR B)."
+        >
+          <LoadingOrError loading={burndown.loading} error={burndown.error} />
+          {burndown.data && burndown.data.length > 0 && (
+            <AreaTrend
+              data={burndown.data.map((p) => ({
+                label: brDate(p.usage_date),
+                value: p.net_cost_cum_brl,
+                ma7: p.budget_brl,
+              }))}
+            />
+          )}
+        </Panel>
+
+        <Panel
+          title="Previsão — próximos 3 meses"
+          cap="Tendência estimada + faixa (histórico curto → incerteza alta)."
+        >
+          <LoadingOrError loading={forecast.loading} error={forecast.error} />
+          {forecast.data && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 6 }}>
+              {forecast.data.map((m) => (
+                <div key={m.invoice_month} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span
+                    className="mono"
+                    style={{ flex: "0 0 58px", fontSize: 12, color: "var(--muted-foreground)" }}
+                  >
+                    {monthLabel(m.invoice_month)}
+                  </span>
+                  <span
+                    style={{
+                      flex: 1,
+                      height: 12,
+                      background: "var(--muted)",
+                      borderRadius: 3,
+                      overflow: "hidden",
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: "block",
+                        height: "100%",
+                        width: `${Math.min((m.value_brl / 24) * 100, 100)}%`,
+                        background: m.is_actual ? "var(--chart-net)" : "var(--chart-other)",
+                      }}
+                    />
+                  </span>
+                  <span className="mono" style={{ flex: "0 0 120px", textAlign: "right", fontSize: 12 }}>
+                    {brl(m.value_brl)}
+                    {m.forecast_lo_brl != null && m.forecast_hi_brl != null && (
+                      <span style={{ color: "var(--ink-mute)" }}>
+                        {" "}
+                        ({brl(m.forecast_lo_brl)}–{brl(m.forecast_hi_brl)})
+                      </span>
+                    )}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </Panel>
+      </div>
     </>
   );
 }
