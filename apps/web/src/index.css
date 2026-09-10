@@ -186,10 +186,33 @@ input {
 
 .card,
 .panel {
+  position: relative;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 20px;
+}
+
+/* Regua amarela em canto (L no topo-esquerda) — em todo card/painel/grafico.
+   Substitui a borda-topo cheia. Ver apps/web/DESIGN.md. */
+.dp6-corner {
+  position: relative;
+}
+.card::before,
+.panel::before,
+.chart-well::before,
+.dp6-corner::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  width: 86%;
+  max-width: 220px;
+  height: 22px;
+  border-top: 2px solid var(--primary);
+  border-left: 2px solid var(--primary);
+  border-top-left-radius: var(--radius);
+  pointer-events: none;
 }
 .card > h3,
 .panel > h3 {
@@ -202,6 +225,7 @@ input {
   font-size: 12.5px;
 }
 .chart-well {
+  position: relative;
   margin-top: 10px;
   background: var(--muted);
   border-radius: var(--radius);

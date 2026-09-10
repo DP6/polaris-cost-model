@@ -41,50 +41,56 @@ Consolidação: **Orçamento & previsão** virou seção da Visão Geral; **Otim
 - **Números** pt-BR (`R$ 1.284,93`), Ubuntu Mono nas figuras/tabelas.
 - **Honestidade do dado**: toda tela com dado parcial/curado abre com um `WarningCallout`
   dizendo o que é confiável e o que não é (ver notas por aba).
+- **Caption ≠ afirmação de dado**: a caption descreve o que o widget mostra e como calcula,
+  nunca um fato do dado atual ("Cloud Run concentra a maior parte" → proibido).
+- **Régua amarela em canto** (`.dp6-corner`, um "L" no topo-esquerdo) em **todo** card /
+  painel / gráfico — não só no scorecard (revisão de 2026-09-10; ver `apps/web/DESIGN.md`).
+- **Scorecard segue o Período** nos tiles de custo/créditos/economia; os tiles de
+  run-rate/orçamento são sempre mês corrente e ficam num **grupo à esquerda** separado
+  (revisão de 2026-09-10; sobrepõe a regra "widgets mês-âncora ignoram o período" da §1 e da
+  `specs/004` §1 — a divisão agora é **dentro** do scorecard).
 
 ---
 
 ## 1. Visão Geral — `/`
 
 **Propósito:** a foto do mês em 10 segundos + o orçamento do mês.
-**Layout (topo → base):**
+**Layout (topo → base) — revisão 2026-09-10:** mês-âncora antes, janela depois.
 
-1. **`PageHeader`** — eyebrow `"<Mês> <Ano> · mês corrente (MTD, N dias)"` · `<h1>` "Visão
-   geral" · descrição (billing export, BRL/USD). *(já implementado, PR A)*
-2. **Tira de saúde dos dados** — callout full-width: bolinha `--status-ok`/`--status-warn` +
-   "Export íntegro · última carga <relativo> · N linhas · M meses". *(já implementado)*
-3. **Scorecard** — 6 `MetricTile` num grid **fixo de 6 colunas** (3 em telas médias, 2 em
-   estreitas) — não `auto-fit`, que distribui 5+1. Ajustar o `MetricGrid` / a VG ao
-   implementar. *(parcial — layout a corrigir)*
-4. **Linha** `grid 1.55fr / 1fr`: área "Custo líquido diário" (`AreaTrend`) + "Custo por
-   serviço" (`HBars`). *(já implementado)*
-5. **`Panel` "Reconciliação com a fatura"** — 3 meses, mês corrente "(parcial)". *(já implementado)*
-6. **Seção "Orçamento do mês"** *(nova — ex-aba Orçamento)*:
-   - **Faixa de 4 tiles** — Consumido MTD (`R$ · % de R$ 20`) · Projeção fim de mês
-     (`R$ · % · run-rate linear`) · Folga projetada (`orçamento − projeção`) · Estouro
-     projetado (`data` ou "sem estouro").
-   - **`ComboChart` "Consumo acumulado vs. orçamento"** — linha cheia = realizado MTD,
-     tracejada = projeção linear até o fim do mês; 4 linhas de referência horizontais
-     (50/80/100/120% = R$ 10/16/20/24).
-   - **Escada de thresholds** — barra segmentada 50/80/100/120% com marcador na projeção EOM.
-   - **`ComboChart` "Previsão — próximos 3 meses"** — barra = tendência estimada, whisker
-     vertical = faixa `lo–hi`. `WarningCallout`: "3 meses de histórico, agosto atípico → faixa
-     larga de propósito".
+1. **`PageHeader`** + **tira de saúde dos dados** (frescor, nº linhas, nº meses).
+2. **Scorecard dividido em 2 grupos**, com divisória visível:
+   - **Esquerda "Mês corrente · fixo"** (ignora o Período; segue Serviço/Ambiente/App):
+     `Custo vs. orçamento` (headline: `budget_used_pct` + `run_rate_vs_budget_pct` +
+     `StatusBadge`) · `Run-rate fim de mês`.
+   - **Direita "Período · <janela>"** (segue `from`/`to`): `Custo líquido` (soma da janela) ·
+     `Δ vs. período anterior` (janela anterior de mesmo tamanho) · `Créditos` ·
+     `Economia efetiva` (`1 − líquido/bruto`, só créditos).
+3. **`Panel` "Reconciliação com a fatura"** *(mês-âncora)* — 3 meses, mês corrente "(parcial)".
+4. **Seção "Orçamento & previsão"** *(mês-âncora)* — tiles `Consumido MTD` / `Folga
+   projetada` / `Estouro projetado`; **"Consumo acumulado vs. orçamento"** (`AreaTrend`:
+   realizado + linha de orçamento — thresholds 50/80/100/120% viram `ComboChart` na PR B);
+   **"Previsão 3 meses"** (barras + faixa `lo–hi`; `WarningCallout` "histórico curto → faixa
+   larga").
+5. **`Panel` "Custo líquido no tempo"** *(janela)* — **`TemporalChart`** (barras por período
+   + linha acumulativa no eixo Y direito + média móvel 7d só em `grain=day`); controles
+   **Granularidade** (Dia/Mês) e **Empilhar por** (Nenhum/Serviço/Ambiente/App).
+6. **Linha** `grid 1fr/1fr`: "Custo por serviço" (`HBars`) + **"Custo por app e ambiente"**
+   *(novo)* — 2 mini-`HBars` (por app / por ambiente) com a fatia `(não-alocado)` explícita.
 
 **Widgets → dados:**
 
 | Widget | Tipo | Endpoint | View / colunas |
 |---|---|---|---|
-| Scorecard (6 tiles) | mês-âncora | `GET /api/scorecard?currency&service&environment&app` | `rpt_cost_scorecard` (sem recorte) / recomputa de `rpt_cost_daily`+`rpt_cost_monthly` (com recorte) |
-| Custo líquido diário + MA7 | **janela** | `GET /api/cost/daily?from&to&…` | `rpt_cost_daily` agg por `usage_date` |
+| Scorecard — grupo esquerdo | mês-âncora | `GET /api/scorecard?service&environment&app` (sem `from`/`to`) | `rpt_cost_scorecard` / recomputo MTD |
+| Scorecard — grupo direito | **janela** | `GET /api/scorecard?from&to&service&environment&app` | recomputo de `rpt_cost_daily` na janela + janela anterior |
+| Custo líquido no tempo | **janela** | `GET /api/cost/series?grain&group_by&from&to&…` | `rpt_cost_daily` (dia) / `rpt_cost_monthly` (mês); `ma7` e `cum` no cliente |
 | Custo por serviço | **janela** | `GET /api/cost/by-service?from&to&…` | `rpt_cost_daily` agg por `service_description` |
-| Reconciliação (3 meses) | mês-âncora | `GET /api/reconciliation?currency&service&environment&app` | `rpt_cost_monthly` agg por `invoice_month` |
-| Tiles de orçamento | mês-âncora | `GET /api/budget?currency&service&environment&app` | `rpt_cost_scorecard` + `rpt_budget_daily` |
-| Burn-down + thresholds | mês-âncora | `GET /api/budget/burndown?month&currency` | `rpt_budget_daily` (`usage_date`, `net_cost_cum_brl`, `budget_brl`, `is_realized`) |
-| Previsão 3 meses | mês-âncora | `GET /api/forecast?horizon=3&currency` | `rpt_forecast_monthly` (`invoice_month`, `is_actual`, `value_brl`, `forecast_lo_brl`, `forecast_hi_brl`) |
+| Custo por app e ambiente | mês-âncora | `GET /api/allocation/by-app`, `GET /api/allocation/by-env` | `rpt_showback_monthly` (`label_*`, `net_cost_brl`, `unallocated_net_cost_brl`) |
+| Reconciliação (3 meses) | mês-âncora | `GET /api/reconciliation?service&environment&app` | `rpt_cost_monthly` agg por `invoice_month` |
+| Tiles + burn-down + previsão | mês-âncora | `GET /api/budget`, `/api/budget/burndown`, `/api/forecast` | `rpt_cost_scorecard` + `rpt_budget_daily` + `rpt_forecast_monthly` |
 
-**Confiança:** alta, exceto a previsão (faixa larga — comunicar). **Status:** itens 1–5
-implementados na PR A; falta a seção 6 + o fix do filtro (§7).
+**Confiança:** alta, exceto a previsão (faixa larga — comunicar). **Status:** implementada
+(PRs #8/#9 + esta revisão).
 
 ---
 
