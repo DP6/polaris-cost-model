@@ -29,7 +29,7 @@ resource "google_iam_workload_identity_pool_provider" "plan" {
 resource "google_iam_workload_identity_pool_provider" "apply" {
   workload_identity_pool_id          = google_iam_workload_identity_pool.gh.workload_identity_pool_id
   workload_identity_pool_provider_id = "github-apply"
-  display_name                       = "GitHub Actions - apply (main + develop)"
+  display_name                       = "GH Actions apply (main+dev)"
 
   attribute_mapping = {
     "google.subject"       = "assertion.sub"
