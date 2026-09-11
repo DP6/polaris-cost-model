@@ -65,6 +65,14 @@
   --chart-alert: var(--status-error);
   --chart-credit: var(--accent-purple);
 
+  /* topbar e rodapé: cromo de marca "sempre invertido" (fundo escuro),
+     independente do tema — nomeados aqui em vez de hex soltos em App.tsx */
+  --inverse-background: #1d1d1b;
+  --inverse-foreground: #f2f1ec;
+  --inverse-foreground-muted: #a7abb0;
+  --inverse-foreground-subtle: #d9d6cc;
+  --inverse-border: #4a4a44;
+
   /* --- aliases legados (não usar em código novo) --- */
   --bg: var(--background);
   --surface: var(--card);

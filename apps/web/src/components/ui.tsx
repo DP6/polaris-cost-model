@@ -112,13 +112,13 @@ export function MetricTile({
   sub?: ReactNode;
   tone?: "ok" | "bad" | "neutral";
 }) {
-  const color = tone === "ok" ? "var(--ok)" : tone === "bad" ? "var(--bad)" : "var(--ink)";
+  const color = tone === "ok" ? "var(--status-ok-foreground)" : tone === "bad" ? "var(--status-error-foreground)" : "var(--foreground)";
   return (
     <div
       className="dp6-corner"
       style={{
-        background: "var(--surface)",
-        border: "1px solid var(--hair)",
+        background: "var(--card)",
+        border: "1px solid var(--border)",
         borderRadius: "var(--radius)",
         padding: 16,
         display: "flex",
@@ -131,7 +131,7 @@ export function MetricTile({
           font: "500 10px/1.3 Ubuntu, sans-serif",
           letterSpacing: ".14em",
           textTransform: "uppercase",
-          color: "var(--ink-dim)",
+          color: "var(--muted-foreground)",
         }}
       >
         {label}
@@ -142,7 +142,7 @@ export function MetricTile({
       >
         {value}
       </span>
-      {sub && <span style={{ fontSize: 12, color: "var(--ink-dim)" }}>{sub}</span>}
+      {sub && <span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>{sub}</span>}
     </div>
   );
 }
@@ -173,7 +173,7 @@ export function MetricGrid({ children, cols }: { children: ReactNode; cols?: num
 }
 
 export function Chip({ tone, children }: { tone: "ok" | "warn" | "bad"; children: ReactNode }) {
-  const c = tone === "ok" ? "var(--ok)" : tone === "warn" ? "var(--warn)" : "var(--bad)";
+  const c = tone === "ok" ? "var(--status-ok-foreground)" : tone === "warn" ? "var(--status-warn-foreground)" : "var(--status-error-foreground)";
   return (
     <span
       style={{
@@ -228,7 +228,7 @@ export function DataTable<T>({
 }
 
 export function LoadingOrError({ loading, error }: { loading?: boolean; error?: string }) {
-  if (error) return <div style={{ color: "var(--bad)", fontSize: 13 }}>Erro ao carregar: {error}</div>;
+  if (error) return <div style={{ color: "var(--status-error-foreground)", fontSize: 13 }}>Erro ao carregar: {error}</div>;
   if (loading) return <div style={{ color: "var(--ink-mute)", fontSize: 13 }}>Carregando…</div>;
   return null;
 }

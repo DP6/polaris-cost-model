@@ -37,7 +37,7 @@ Custo líquido, economia, evolução, showback por `app`×`environment`, anomali
 
 - **Dataform** Core 3.0 (BigQuery, location US). `schema_suffix` por ambiente — os `.sqlx` não mudam.
 - **API**: Python 3.12 + FastAPI, `uv`. Modo mock (`BILLING_API_MOCK=1`) serve fixtures da validação.
-- **Web**: React 19 + Vite + Recharts + Tailwind, `pnpm`/`npm`.
+- **Web**: React 19 + Vite + Recharts, CSS puro (sem Tailwind — ver `apps/web/DESIGN.md`), `pnpm`/`npm`.
 - **IaC**: Terraform `google ~> 6.0` (Cloud Run usa `google-beta` por `iap_enabled`). Diretório por
   ambiente, **não** workspaces (ADR-007).
 - **CI/CD**: GitHub Actions + WIF (sem chave de SA).
