@@ -31,7 +31,7 @@
   /* status: fill (>=3:1) + foreground (texto/ícone, >=4.5:1 nos dois temas) */
   --status-ok: #34d399;
   --status-warn: #ffb302;
-  --status-error: #e53e3e;
+  --status-error: #d64500; /* DS canônico varia por tema (ver .dark); specs/002-003 e mock/README.md já documentavam este valor pro claro */
   --status-info: #63b3ed;
   --status-ok-foreground: #0b7a43;
   --status-warn-foreground: #8a5700;
