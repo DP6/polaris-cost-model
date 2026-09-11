@@ -2,6 +2,31 @@
 
 Formato: o que foi feito, decisões, erros/aprendizados, status. Data em ordem decrescente.
 
+## 2026-09-11 — Incidente: duplicação nas tabelas incrementais
+
+**Sintoma:** alerta do Monitoring (`billing-polaris dev - Dataform workflow FAILED`) na
+execução agendada `dev-daily` das 06:30 (America/Sao_Paulo). `assert_stg_no_exact_duplicate`
+e `assert_fct_reconciliation` falharam. Dado ao vivo ficou incorreto: `fct_billing_cost_daily`
+mostrou agosto em R$ 70,96 (era R$ 23,65) e o scorecard marcou 112% do orçamento.
+
+**Causa raiz:** `stg_billing_polaris` e `fct_billing_cost_daily` são `type: incremental` com
+`bigquery.updatePartitionFilter` mas **sem `uniqueKey`**. Sem `uniqueKey`, o Dataform não
+substitui a partição — cada run incremental faz `INSERT` puro dos `lookback_days` (45 dias)
+reprocessados, duplicando (dobrando) toda a janela de lookback a cada execução, indefinidamente.
+Confirmado por query: linhas fora do lookback (`usage_date < hoje-45d`) com `n == distinct
+source_row_fp`; dentro do lookback, `n` ≈ `2×` `distinct source_row_fp`.
+
+**Fix:** `uniqueKey` em ambas — `stg_billing_polaris` usa `source_row_fp` (nunca nulo, já
+existia); `fct_billing_cost_daily` usa um `grain_key` sintético (`MD5` das colunas de grão
+com `IFNULL(...,'')`) em vez das colunas de grão cruas — `label_environment`/`app`/
+`managed_by` são NULL em ~90-96% das linhas (cobertura de label 4-10%) e o MERGE do BigQuery
+não casa `NULL = NULL` (vira `UNKNOWN`), então um `uniqueKey` direto nunca daria `MATCH` pra
+essas linhas. As colunas de label continuam NULL de verdade na tabela — `rpt_label_coverage`
+e `rpt_showback_monthly` dependem disso (`IS NOT NULL`, `COALESCE(...,'(sem label)')`).
+
+**Remediação:** `--full-refresh` (`fullyRefreshIncrementalTablesEnabled: true`) no
+`workflowConfig` `dev-daily` pra descartar as linhas duplicadas e reconstruir do zero.
+
 ## 2026-09-10 — UX dos dashboards (PR A: modelo + Visão Geral)
 
 - `specs/004-ux-dashboards.md` — modelo de período (presets `Mês corrente` · 30d · 90d · Este

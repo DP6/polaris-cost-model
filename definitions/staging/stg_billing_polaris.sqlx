@@ -2,7 +2,13 @@ config {
   type: "incremental",
   schema: dataform.projectConfig.vars.staging_dataset,
   tags: ["billing_polaris"],
-  description: "Billing export limpo e deduplicado. 1 linha por linha de origem. Janela movel de lookback_days reprocessada a cada run (updatePartitionFilter absorve o restatement).",
+  description: "Billing export limpo e deduplicado. 1 linha por linha de origem. Janela movel de lookback_days reprocessada a cada run (updatePartitionFilter + uniqueKey absorvem o restatement).",
+  // uniqueKey obrigatorio: sem ele, updatePartitionFilter NAO substitui a particao —
+  // o Dataform so faz INSERT puro (sem MATCH), duplicando a janela de lookback a cada
+  // run incremental (incidente 2026-09-11: fct/scorecard triplicaram no ar). Com
+  // uniqueKey, o MERGE gerado casa por source_row_fp e faz UPDATE em vez de INSERT
+  // quando a mesma linha de origem reaparece dentro do lookback.
+  uniqueKey: ["source_row_fp"],
   bigquery: {
     partitionBy: "usage_date",
     clusterBy: ["service_description", "sku_description"],
