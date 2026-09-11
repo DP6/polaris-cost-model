@@ -2,6 +2,35 @@
 
 Formato: o que foi feito, decisões, erros/aprendizados, status. Data em ordem decrescente.
 
+## 2026-09-11 — Fluxo de promoção dev → prod (branch → develop → main)
+
+Formaliza em CD o que o ADR-007 já declarava (`dev` compila `develop`, `prod` compila `main`)
+mas nunca teve workflow — até aqui só `main` disparava deploy, e só pra dev; `prod` nunca foi
+aplicado.
+
+**Fluxo:** push de qualquer branch → `pr-to-develop.yml` abre PR pra `develop` automaticamente
+→ merge manual (sem trava do GitHub — sem review count obrigatório) → `deploy-dev.yml` dispara,
+cada job atrás do gate do Environment `dev-deploy` (reviewers obrigatórios) → se aprovado,
+`terraform apply` (dev) + build/deploy do app rodam de verdade → se ambos sucederem, o job
+`promote-to-main` abre PR `develop → main` automaticamente → merge manual → `deploy-prod.yml`
+dispara, gate `prod-deploy` → se aprovado, aplica prod pela primeira vez.
+
+- Substituídos `terraform-apply.yml` + `apps-deploy.yml` (só main→dev, sem gate) por
+  `deploy-dev.yml` + `deploy-prod.yml` (um por ambiente, cada um atrás do Environment gate).
+- Novo `pr-to-develop.yml`.
+- `terraform/bootstrap/wif.tf`: provider `apply` liberado pra `refs/heads/develop` também
+  (antes só `main` — bloquearia qualquer deploy disparado por push em `develop`).
+- **Trava real é só o gate de reviewers do Environment** (`dev-deploy`/`prod-deploy`, GitHub
+  Environments configurados via `gh api`, reviewers: matheus.fuzati, sara.santana,
+  gabrielly.andrade) — merge de PR continua manual e sem enforcement (decisão explícita, não
+  branch protection).
+- `prod` builda a própria imagem a partir de `main` (não reaproveita/retag a imagem de dev) —
+  mais simples, e o conteúdo é garantidamente igual já que `develop→main` é sempre promoção
+  automática sem edição no meio.
+- **Risco registrado, não bloqueante:** mesma SA `gh-apply-cost-model` (roles amplas de
+  projeto) usada pra dev e prod — isolamento é 100% procedural (gate de reviewers), não um
+  limite técnico de IAM.
+
 ## 2026-09-11 — Incidente: duplicação nas tabelas incrementais
 
 **Sintoma:** alerta do Monitoring (`billing-polaris dev - Dataform workflow FAILED`) na
