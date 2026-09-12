@@ -31,7 +31,7 @@
   /* status: fill (>=3:1) + foreground (texto/ícone, >=4.5:1 nos dois temas) */
   --status-ok: #34d399;
   --status-warn: #ffb302;
-  --status-error: #e53e3e;
+  --status-error: #d64500; /* DS canônico varia por tema (ver .dark); specs/002-003 e mock/README.md já documentavam este valor pro claro */
   --status-info: #63b3ed;
   --status-ok-foreground: #0b7a43;
   --status-warn-foreground: #8a5700;
@@ -64,6 +64,14 @@
   --chart-other: #8a8f96;
   --chart-alert: var(--status-error);
   --chart-credit: var(--accent-purple);
+
+  /* topbar e rodapé: cromo de marca "sempre invertido" (fundo escuro),
+     independente do tema — nomeados aqui em vez de hex soltos em App.tsx */
+  --inverse-background: #1d1d1b;
+  --inverse-foreground: #f2f1ec;
+  --inverse-foreground-muted: #a7abb0;
+  --inverse-foreground-subtle: #d9d6cc;
+  --inverse-border: #4a4a44;
 
   /* --- aliases legados (não usar em código novo) --- */
   --bg: var(--background);

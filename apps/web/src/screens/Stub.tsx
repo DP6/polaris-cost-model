@@ -21,19 +21,19 @@ export function Stub({
       <header style={{ display: "flex", flexDirection: "column", gap: 3 }}>
         <span className="eyebrow">{eyebrow}</span>
         <h1 style={{ fontSize: 22 }}>{title}</h1>
-        <p style={{ margin: 0, color: "var(--ink-dim)", fontSize: 13.5, maxWidth: "72ch" }}>{desc}</p>
+        <p style={{ margin: 0, color: "var(--muted-foreground)", fontSize: 13.5, maxWidth: "72ch" }}>{desc}</p>
       </header>
       <div
         style={{
           display: "flex",
           gap: 12,
           padding: "12px 16px",
-          background: "var(--well)",
-          border: "1px solid var(--hair)",
-          borderLeft: "2px solid var(--accent)",
+          background: "var(--muted)",
+          border: "1px solid var(--border)",
+          borderLeft: "2px solid var(--primary)",
           borderRadius: 6,
           fontSize: 13,
-          color: "var(--ink-dim)",
+          color: "var(--muted-foreground)",
         }}
       >
         Tela a construir a partir de <span className="mono">mock/canvas/{artboard}</span>. Endpoints já ligados —
@@ -56,11 +56,11 @@ function EndpointPreview({ label, path, params }: { label: string; path: string;
           style={{
             margin: "8px 0 0",
             padding: 12,
-            background: "var(--well)",
+            background: "var(--muted)",
             borderRadius: 6,
             fontFamily: '"Ubuntu Mono", monospace',
             fontSize: 12,
-            color: "var(--ink)",
+            color: "var(--foreground)",
             overflowX: "auto",
             maxHeight: 320,
           }}

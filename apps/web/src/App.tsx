@@ -61,25 +61,25 @@ function TopBar() {
         gap: 14,
         height: 52,
         padding: "0 28px",
-        background: "#1d1d1b",
-        color: "#f2f1ec",
+        background: "var(--inverse-background)",
+        color: "var(--inverse-foreground)",
       }}
     >
       <svg width="24" height="16" viewBox="0 0 26 18" aria-hidden="true">
-        <path d="M2 18 L2 12 L7 10 L7 18 Z" fill="#ffb302" />
-        <path d="M10 18 L10 7 L15 5 L15 18 Z" fill="#ffb302" />
-        <path d="M18 18 L18 2 L23 0 L23 18 Z" fill="#ffb302" />
+        <path d="M2 18 L2 12 L7 10 L7 18 Z" fill="var(--primary)" />
+        <path d="M10 18 L10 7 L15 5 L15 18 Z" fill="var(--primary)" />
+        <path d="M18 18 L18 2 L23 0 L23 18 Z" fill="var(--primary)" />
       </svg>
       <span style={{ fontWeight: 500 }}>CI Polaris</span>
-      <span style={{ color: "#a7abb0", fontSize: 13 }}>· controle de custo</span>
+      <span style={{ color: "var(--inverse-foreground-muted)", fontSize: 13 }}>· controle de custo</span>
       <span style={{ flex: 1 }} />
       {meta.data?.data_updated_at && (
         <span
           className="mono"
           style={{
             fontSize: 11,
-            color: "#d9d6cc",
-            border: "1px solid #4a4a44",
+            color: "var(--inverse-foreground-subtle)",
+            border: "1px solid var(--inverse-border)",
             borderRadius: 999,
             padding: "4px 9px",
           }}
@@ -96,10 +96,10 @@ function TopBar() {
           width: 34,
           height: 34,
           background: "transparent",
-          border: "1px solid #4a4a44",
+          border: "1px solid var(--inverse-border)",
           borderRadius: "var(--radius)",
           cursor: "pointer",
-          color: "#f2f1ec",
+          color: "var(--inverse-foreground)",
         }}
       >
         {theme === "dark" ? "☀" : "☾"}
@@ -299,8 +299,8 @@ export default function App() {
       <footer
         style={{
           borderTop: "1px solid var(--border)",
-          background: "#1d1d1b",
-          color: "#a7abb0",
+          background: "var(--inverse-background)",
+          color: "var(--inverse-foreground-muted)",
           padding: "16px 28px",
           font: '400 11.5px/1.5 "Ubuntu Mono", monospace',
         }}

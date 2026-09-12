@@ -1,8 +1,10 @@
 # Design system — apps/web
 
-Espelha `atlas/apps/frontend/src/index.css` + `atlas/docs/frontend/{design-system,ui-ux-rules}.md`.
-`polaris-cost-model` é standalone (ADR-001) — **espelha, não importa**. Contrato completo:
-`specs/004-ux-dashboards.md` §3.
+Espelha `ci-polaris/DP6-Design-System.md` (fonte única da iniciativa) via
+`ci-polaris/MAPA-DE-TOKENS.md`, que resolve a correspondência entre os tokens canônicos e os
+nomes usados aqui — antes esse papel era do `atlas/apps/frontend/src/index.css`, que hoje é
+apenas outro consumidor do mesmo mapa, não mais a fonte. `polaris-cost-model` é standalone
+(ADR-001) — **espelha, não importa**. Contrato completo: `specs/004-ux-dashboards.md` §3.
 
 ## Regra de sincronização
 

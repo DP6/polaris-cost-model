@@ -11,8 +11,9 @@ import {
   YAxis,
 } from "recharts";
 import { brl, dayLabel, monthLabel } from "../lib/format";
+import { useTheme } from "../lib/useTheme";
 import type { CostSeriesPoint } from "../types";
-import { chartColor } from "./palette";
+import { axisStyle, chartColor } from "./palette";
 
 export type Grain = "day" | "month";
 export type GroupBy = "none" | "service" | "environment" | "app";
@@ -85,8 +86,12 @@ function shape(data: CostSeriesPoint[], grain: Grain): { rows: Row[]; keys: stri
   return { rows, keys };
 }
 
-const barColor = (i: number) =>
-  i === 0 ? chartColor("net") : i === 1 ? chartColor("alt") : chartColor("other");
+// "Outros" (cauda agregada por shape()) sempre em cinza; as demais séries ciclam pela
+// paleta categórica de 4 cores (net/alt/alert/credit) — antes disso, da 3ª série em
+// diante todas caíam em chartColor("other") e ficavam indistinguíveis no stack.
+const SERIES_ORDER = ["net", "alt", "alert", "credit", "other"] as const;
+const barColor = (i: number, key: string) =>
+  key === "Outros" ? chartColor("other") : chartColor(SERIES_ORDER[i % SERIES_ORDER.length]);
 
 export function TemporalChart({
   data,
@@ -101,6 +106,7 @@ export function TemporalChart({
   onChange: (p: { grain: Grain; groupBy: GroupBy }) => void;
   height?: number;
 }) {
+  useTheme(); // assina o tema pra recolorir gráfico e eixos no toggle (chartColor lê getComputedStyle)
   const { rows, keys } = data ? shape(data, grain) : { rows: [], keys: [] };
   const single = keys.length === 1 && keys[0] === "total";
 
@@ -155,10 +161,10 @@ export function TemporalChart({
       <div className="chart-well" style={{ marginTop: 10 }}>
         <ResponsiveContainer width="100%" height={height}>
           <ComposedChart data={rows} margin={{ top: 8, right: 46, bottom: 4, left: 0 }}>
-            <CartesianGrid stroke="var(--hair-strong)" vertical={false} />
+            <CartesianGrid stroke="var(--border-strong)" vertical={false} />
             <XAxis
               dataKey="label"
-              tick={{ fontSize: 10, fill: "var(--ink-dim)" }}
+              tick={axisStyle}
               tickLine={false}
               axisLine={false}
               minTickGap={24}
@@ -166,7 +172,7 @@ export function TemporalChart({
             <YAxis
               yAxisId="bar"
               width={52}
-              tick={{ fontSize: 10, fill: "var(--ink-dim)" }}
+              tick={axisStyle}
               tickLine={false}
               axisLine={false}
               tickFormatter={(v) => brl(v)}
@@ -175,7 +181,7 @@ export function TemporalChart({
               yAxisId="cum"
               orientation="right"
               width={46}
-              tick={{ fontSize: 10, fill: "var(--ink-dim)" }}
+              tick={axisStyle}
               tickLine={false}
               axisLine={false}
               tickFormatter={(v) => brl(v)}
@@ -204,7 +210,7 @@ export function TemporalChart({
                 dataKey={k}
                 stackId="s"
                 name={single ? "líquido" : k}
-                fill={barColor(i)}
+                fill={barColor(i, k)}
                 maxBarSize={34}
               />
             ))}

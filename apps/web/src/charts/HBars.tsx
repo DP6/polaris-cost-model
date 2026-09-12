@@ -1,4 +1,5 @@
 import { brl, pctPlain } from "../lib/format";
+import { useTheme } from "../lib/useTheme";
 import { chartColor } from "./palette";
 
 export interface HBarRow {
@@ -9,6 +10,7 @@ export interface HBarRow {
 
 /** Barras horizontais (custo por serviço). 1ª = azul (destaque), demais = cinza; rótulo direto. */
 export function HBars({ rows }: { rows: HBarRow[] }) {
+  useTheme(); // assina o tema pra recolorir as barras no toggle (chartColor lê getComputedStyle)
   const max = Math.max(...rows.map((r) => r.value), 0.0001);
   const net = chartColor("net");
   const other = chartColor("other");
@@ -16,8 +18,8 @@ export function HBars({ rows }: { rows: HBarRow[] }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 9, marginTop: 12 }}>
       {rows.map((r, i) => (
         <div key={r.label} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ flex: "0 0 118px", fontSize: 12.5, color: "var(--ink-dim)" }}>{r.label}</span>
-          <span style={{ flex: 1, height: 15, background: "var(--well)", borderRadius: 3, overflow: "hidden" }}>
+          <span style={{ flex: "0 0 118px", fontSize: 12.5, color: "var(--muted-foreground)" }}>{r.label}</span>
+          <span style={{ flex: 1, height: 15, background: "var(--muted)", borderRadius: 3, overflow: "hidden" }}>
             <span
               style={{
                 display: "block",
