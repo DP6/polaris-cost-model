@@ -2,6 +2,49 @@
 
 Formato: o que foi feito, decisões, erros/aprendizados, status. Data em ordem decrescente.
 
+## 2026-09-12 — Design system: fonte única em `ci-polaris` (ver ADR-009)
+
+Piloto da Fase 1 do rollout do [DP6 Design System](https://github.com/DP6/ci-polaris)
+na iniciativa — cost-model foi o primeiro repo a receber a mudança (Atlas depois,
+replicando o padrão validado aqui), invertendo a ordem original do plano porque os
+conflitos pré-existentes (raio, vermelho) estavam documentados justamente nas specs
+deste repo.
+
+- **Proveniência**: `DESIGN.md`/`CLAUDE.md`/`specs/003` passam a apontar pra
+  `ci-polaris/DP6-Design-System.md` + `MAPA-DE-TOKENS.md` em vez de espelhar
+  `atlas/apps/frontend/src/index.css` direto (ADR-009). Tirada a menção incorreta
+  a Tailwind (o repo nunca usou).
+- **Migração de 10 aliases legados** (`--surface/--well/--ink/--ink-dim/--hair/
+  --hair-strong/--accent/--ok/--warn/--bad`) pra nomes canônicos já existentes —
+  zero mudança de valor, `index.css` já os declarava via `var()`.
+- **3 bugs reais achados ao validar** (não previstos no plano original):
+  `palette.ts` lia aliases deprecados em vez dos `--chart-*` já existentes, com
+  fallback cobrindo só uma de cinco séries; o gráfico empilhado (`TemporalChart`)
+  só diferenciava as 2 primeiras séries de um stack de até 6 (as demais caíam
+  todas em cinza); o toggle de tema não repintava os gráficos de forma
+  confiável (`useTheme` era estado local por componente) — convertido pra
+  `useSyncExternalStore` compartilhado.
+- **Vermelho de status** (`--status-error`) passa a variar por tema (`#d64500`
+  claro / `#e53e3e` escuro, igual já era) — decisão de produto confirmada pelo
+  usuário; `#d64500` já era o valor documentado em `specs/002`/`specs/003`/
+  `mock/README.md`, o código é que estava fora de sincronia.
+- **Bug achado nas próprias salvaguardas**: `check_contrast.py`
+  (`ci-polaris/scripts/`) tinha colisão de seletor — `.dark` batia primeiro num
+  comentário do `index.css`, não na regra CSS real, fazendo o tema escuro ser
+  checado com os valores do claro. Corrigido em `ci-polaris`.
+- Raio, tipografia, cor de texto mudo: mantidos como estão — divergência do DS
+  aceita e documentada em `ci-polaris/MAPA-DE-TOKENS.md`, não forçada.
+- **Fora de escopo, registrado como dívida**: hardcode não-cor (~62 `style={{}}`
+  com `borderRadius`/`fontSize`/`gap` literais em vez de token) — maior, sem
+  urgência de bug, fica pra outra rodada. `mock/canvas/` (691 hex literais, tema
+  claro, protótipo das 7 telas ainda em `Stub.tsx`) e `mock/index.html` (3ª
+  nomenclatura de token, candidato a deprecação) não fizeram parte deste
+  rollout — escopo original era só o app real. As 3 IAs de navegação em
+  circulação (8 tabs em `App.tsx`/canvas, 6 em `specs/005`, 5 no mock)
+  continuam divergentes, sem reconciliação nesta rodada.
+- PR [#14](https://github.com/DP6/polaris-cost-model/pull/14), validado
+  visualmente pelo usuário (toggle de tema, stack de cores, vermelho por tema).
+
 ## 2026-09-11 — Fluxo de promoção dev → prod (branch → develop → main)
 
 Formaliza em CD o que o ADR-007 já declarava (`dev` compila `develop`, `prod` compila `main`)
