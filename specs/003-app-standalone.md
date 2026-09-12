@@ -15,9 +15,10 @@ usos: operacional diário (time CI/dev) e revisão executiva mensal.
 - **`apps/api/`** — backend fino (FastAPI, `uv`), só leitura das views `rpt_*` em
   `billing_polaris_mart` (+ 1 arquivo de config `recommendations.yaml`). Sem lógica de negócio
   (está no SQL). Cloud Run `billing-api-prod`.
-- **`apps/web/`** — SPA React + Vite + TypeScript + Recharts + Tailwind. Tokens do DP6 Design
-  System aplicados direto (`tokens/*.css` de `polaris-heap/DP6-Design-System.md`). Build
-  estático servido por Cloud Run `billing-web-prod`.
+- **`apps/web/`** — SPA React + Vite + TypeScript + Recharts, CSS puro (sem Tailwind). Tokens
+  do DP6 Design System aplicados em `src/index.css`, via `ci-polaris/DP6-Design-System.md`
+  (fonte única) e `ci-polaris/MAPA-DE-TOKENS.md` (correspondência) — ver `apps/web/DESIGN.md`.
+  Build estático servido por Cloud Run `billing-web-prod`.
 - **8 telas** (`specs/002` "Revisão pós-canvas"): Visão geral · Orçamento & previsão ·
   Tendência · Alocação · Serviços & SKUs · Otimização & waste · Unit economics · Anomalias.
 - **Auth:** IAP na frente dos dois serviços Cloud Run; allowlist de e-mails DP6. Sem sessão/JWT
