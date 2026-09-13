@@ -217,6 +217,8 @@ export function TemporalChart({
                 stackId="s"
                 name={single ? "líquido" : k}
                 fill={barColor(i, k)}
+                stroke="var(--card)"
+                strokeWidth={2}
                 maxBarSize={34}
               />
             ))}
