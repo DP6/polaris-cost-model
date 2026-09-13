@@ -451,21 +451,32 @@ def alloc_by_app(
         return m.AppAllocationDTO(**fx.ALLOC_BY_APP)
     # Lê direto de fct_billing_cost_daily (grão diário) em vez de rpt_showback_monthly (grão
     # mensal) — só assim dá pra respeitar o Período (from/to) e o recorte (Serviço/Ambiente)
-    # do FilterBar. label_app aqui vem cru (NULL de verdade), não pré-COALESCEado como na view.
-    where, params = _scope(service, environment, None)
+    # do FilterBar. Agrupa por label_app_reconciled (label nativo quando existe, senão
+    # reconciliado por nome de recurso/job — Cloud Run, Secret Manager, BigQuery; ver
+    # includes/constants.js), não pelo label_app cru — senão os recursos recém-reconciliados
+    # (que não têm label_environment nativo) sumiriam ao filtrar por Ambiente. Filtro de
+    # ambiente aqui usa label_environment_reconciled pelo mesmo motivo.
+    where, params = ["usage_date BETWEEN @from AND @to"], {"from": from_, "to": to}
+    if service:
+        where.append("service_description = @service_description")
+        params["service_description"] = service
+    if environment:
+        where.append("label_environment_reconciled = @label_environment_reconciled")
+        params["label_environment_reconciled"] = environment
+    where_sql = " AND ".join(where)
     rows = query(f"""
-        SELECT label_app, SUM(net_cost_brl) net_cost_brl
+        SELECT label_app_reconciled AS label_app, SUM(net_cost_brl) net_cost_brl
         FROM `{MART}.fct_billing_cost_daily`
-        WHERE usage_date BETWEEN @from AND @to {where}
-        GROUP BY label_app HAVING label_app IS NOT NULL ORDER BY net_cost_brl DESC
-    """, {**params, "from": from_, "to": to})
+        WHERE {where_sql}
+        GROUP BY label_app_reconciled HAVING label_app_reconciled IS NOT NULL ORDER BY net_cost_brl DESC
+    """, params)
     totals = query(f"""
         SELECT
-          SUM(IF(label_app IS NULL, net_cost_brl, 0)) un,
+          SUM(IF(label_app_reconciled IS NULL, net_cost_brl, 0)) un,
           SUM(net_cost_brl) tot
         FROM `{MART}.fct_billing_cost_daily`
-        WHERE usage_date BETWEEN @from AND @to {where}
-    """, {**params, "from": from_, "to": to})
+        WHERE {where_sql}
+    """, params)
     un = totals[0]["un"] if totals and totals[0]["un"] is not None else 0.0
     tot = totals[0]["tot"] if totals and totals[0]["tot"] is not None else 0.0
     return m.AppAllocationDTO(
@@ -485,21 +496,28 @@ def alloc_by_env(
         tot = sum(r.net_cost_brl for r in rows) + un
         return m.EnvAllocationDTO(rows=rows, unallocated_net_cost_brl=un, unallocated_pct=un / tot if tot else 0.0, net_cost_total_brl=tot)
     # ver comentário equivalente em alloc_by_app — mesmo motivo pra ler fct_billing_cost_daily
-    # direto em vez de rpt_showback_monthly.
-    where, params = _scope(service, None, app)
+    # direto em vez de rpt_showback_monthly, e pra agrupar/filtrar pelas colunas reconciliadas.
+    where, params = ["usage_date BETWEEN @from AND @to"], {"from": from_, "to": to}
+    if service:
+        where.append("service_description = @service_description")
+        params["service_description"] = service
+    if app:
+        where.append("label_app_reconciled = @label_app_reconciled")
+        params["label_app_reconciled"] = app
+    where_sql = " AND ".join(where)
     rows_raw = query(f"""
-        SELECT label_environment, SUM(net_cost_brl) net_cost_brl
+        SELECT label_environment_reconciled AS label_environment, SUM(net_cost_brl) net_cost_brl
         FROM `{MART}.fct_billing_cost_daily`
-        WHERE usage_date BETWEEN @from AND @to {where}
-        GROUP BY label_environment HAVING label_environment IS NOT NULL ORDER BY net_cost_brl DESC
-    """, {**params, "from": from_, "to": to})
+        WHERE {where_sql}
+        GROUP BY label_environment_reconciled HAVING label_environment_reconciled IS NOT NULL ORDER BY net_cost_brl DESC
+    """, params)
     totals = query(f"""
         SELECT
-          SUM(IF(label_environment IS NULL, net_cost_brl, 0)) un,
+          SUM(IF(label_environment_reconciled IS NULL, net_cost_brl, 0)) un,
           SUM(net_cost_brl) tot
         FROM `{MART}.fct_billing_cost_daily`
-        WHERE usage_date BETWEEN @from AND @to {where}
-    """, {**params, "from": from_, "to": to})
+        WHERE {where_sql}
+    """, params)
     un = totals[0]["un"] if totals and totals[0]["un"] is not None else 0.0
     tot = totals[0]["tot"] if totals and totals[0]["tot"] is not None else 0.0
     return m.EnvAllocationDTO(
@@ -517,7 +535,7 @@ def chargeback_readiness() -> m.ChargebackReadinessDTO:
     cov = query(f"SELECT pct_app FROM `{RPT}.rpt_label_coverage` ORDER BY invoice_month DESC LIMIT 1")
     pct = cov[0]["pct_app"] if cov else 0.0
     return m.ChargebackReadinessDTO(
-        coverage_pct=pct, ready=pct >= 0.95,
+        coverage_pct=pct, ready=pct >= 0.80,
         criteria=[m.CriterionDTO(**c) for c in fx.CHARGEBACK["criteria"]],
     )
 
