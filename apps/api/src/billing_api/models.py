@@ -130,6 +130,7 @@ class AppAllocationDTO(BaseModel):
     rows: list[AppRowDTO]
     unallocated_net_cost_brl: float
     unallocated_pct: float
+    net_cost_total_brl: float
 
 
 class EnvCostDTO(BaseModel):
@@ -141,6 +142,7 @@ class EnvAllocationDTO(BaseModel):
     rows: list[EnvCostDTO]
     unallocated_net_cost_brl: float
     unallocated_pct: float
+    net_cost_total_brl: float
 
 
 class CriterionDTO(BaseModel):

@@ -444,68 +444,69 @@ def alloc_coverage_weekly(
 
 @router.get("/allocation/by-app", response_model=m.AppAllocationDTO)
 def alloc_by_app(
-    from_: DateStr | None = Query(default=None, alias="from"), to: DateStr | None = None,
+    from_: DateStr = Query(alias="from"), to: DateStr = Query(...),
+    service: str | None = None, environment: str | None = None,
 ) -> m.AppAllocationDTO:
     if mock_active():
         return m.AppAllocationDTO(**fx.ALLOC_BY_APP)
+    # Lê direto de fct_billing_cost_daily (grão diário) em vez de rpt_showback_monthly (grão
+    # mensal) — só assim dá pra respeitar o Período (from/to) e o recorte (Serviço/Ambiente)
+    # do FilterBar. label_app aqui vem cru (NULL de verdade), não pré-COALESCEado como na view.
+    where, params = _scope(service, environment, None)
     rows = query(f"""
         SELECT label_app, SUM(net_cost_brl) net_cost_brl
-        FROM `{RPT}.rpt_showback_monthly` WHERE label_app != '(sem label)'
-        GROUP BY label_app ORDER BY net_cost_brl DESC
-    """)
-    # `rpt_showback_monthly` tem grão (invoice_month x label_app x label_environment) — sua
-    # coluna `unallocated_net_cost_brl` só é != 0 na linha onde app E ambiente estão AMBOS sem
-    # label ao mesmo tempo (SUM(IF(app IS NULL AND environment IS NULL, ...))), e
-    # `net_cost_total_brl` é o total só do invoice_month daquela linha (ANY_VALUE por mês, não
-    # por tabela inteira). Um ANY_VALUE solto sobre a tabela toda (1ª tentativa deste fix) pega
-    # um valor arbitrário de UM mês/linha específico, quase sempre 0 — por isso "não-alocado"
-    # continuava 0 mesmo com bug "corrigido". Calcular direto aqui, sem depender dessas 2
-    # colunas da view: não-alocado = soma de net_cost onde a própria label_app já vem
-    # '(sem label)' (a view já faz esse COALESCE).
+        FROM `{MART}.fct_billing_cost_daily`
+        WHERE usage_date BETWEEN @from AND @to {where}
+        GROUP BY label_app HAVING label_app IS NOT NULL ORDER BY net_cost_brl DESC
+    """, {**params, "from": from_, "to": to})
     totals = query(f"""
         SELECT
-          SUM(IF(label_app = '(sem label)', net_cost_brl, 0)) un,
+          SUM(IF(label_app IS NULL, net_cost_brl, 0)) un,
           SUM(net_cost_brl) tot
-        FROM `{RPT}.rpt_showback_monthly`
-    """)
+        FROM `{MART}.fct_billing_cost_daily`
+        WHERE usage_date BETWEEN @from AND @to {where}
+    """, {**params, "from": from_, "to": to})
     un = totals[0]["un"] if totals and totals[0]["un"] is not None else 0.0
-    tot = totals[0]["tot"] if totals and totals[0]["tot"] else 1.0
+    tot = totals[0]["tot"] if totals and totals[0]["tot"] is not None else 0.0
     return m.AppAllocationDTO(
         rows=[m.AppRowDTO(label_app=r["label_app"], net_cost_brl=r["net_cost_brl"]) for r in rows],
-        unallocated_net_cost_brl=un, unallocated_pct=(un / tot if tot else 0.0),
+        unallocated_net_cost_brl=un, unallocated_pct=(un / tot if tot else 0.0), net_cost_total_brl=tot,
     )
 
 
 @router.get("/allocation/by-env", response_model=m.EnvAllocationDTO)
 def alloc_by_env(
-    from_: DateStr | None = Query(default=None, alias="from"), to: DateStr | None = None,
+    from_: DateStr = Query(alias="from"), to: DateStr = Query(...),
+    service: str | None = None, app: str | None = None,
 ) -> m.EnvAllocationDTO:
     if mock_active():
         rows = [m.EnvCostDTO(**e) for e in fx.ALLOC_BY_ENV]
         un = float(fx.ALLOC_BY_APP["unallocated_net_cost_brl"])
         tot = sum(r.net_cost_brl for r in rows) + un
-        return m.EnvAllocationDTO(rows=rows, unallocated_net_cost_brl=un, unallocated_pct=un / tot if tot else 0.0)
+        return m.EnvAllocationDTO(rows=rows, unallocated_net_cost_brl=un, unallocated_pct=un / tot if tot else 0.0, net_cost_total_brl=tot)
+    # ver comentário equivalente em alloc_by_app — mesmo motivo pra ler fct_billing_cost_daily
+    # direto em vez de rpt_showback_monthly.
+    where, params = _scope(service, None, app)
     rows_raw = query(f"""
         SELECT label_environment, SUM(net_cost_brl) net_cost_brl
-        FROM `{RPT}.rpt_showback_monthly` WHERE label_environment != '(sem label)'
-        GROUP BY label_environment ORDER BY net_cost_brl DESC
-    """)
-    # ver comentário equivalente em alloc_by_app — un/tot calculados direto (soma de net_cost
-    # onde label_environment já vem '(sem label)'), não lidos das colunas
-    # unallocated_net_cost_brl/net_cost_total_brl da view (essas têm grão por invoice_month e
-    # um ANY_VALUE solto pega um mês arbitrário, quase sempre 0).
+        FROM `{MART}.fct_billing_cost_daily`
+        WHERE usage_date BETWEEN @from AND @to {where}
+        GROUP BY label_environment HAVING label_environment IS NOT NULL ORDER BY net_cost_brl DESC
+    """, {**params, "from": from_, "to": to})
     totals = query(f"""
         SELECT
-          SUM(IF(label_environment = '(sem label)', net_cost_brl, 0)) un,
+          SUM(IF(label_environment IS NULL, net_cost_brl, 0)) un,
           SUM(net_cost_brl) tot
-        FROM `{RPT}.rpt_showback_monthly`
-    """)
+        FROM `{MART}.fct_billing_cost_daily`
+        WHERE usage_date BETWEEN @from AND @to {where}
+    """, {**params, "from": from_, "to": to})
     un = totals[0]["un"] if totals and totals[0]["un"] is not None else 0.0
-    tot = totals[0]["tot"] if totals and totals[0]["tot"] else 1.0
+    tot = totals[0]["tot"] if totals and totals[0]["tot"] is not None else 0.0
     return m.EnvAllocationDTO(
         rows=[m.EnvCostDTO(label_environment=r["label_environment"], net_cost_brl=r["net_cost_brl"]) for r in rows_raw],
         unallocated_net_cost_brl=un,
         unallocated_pct=(un / tot if tot else 0.0),
+        net_cost_total_brl=tot,
     )
 
 
@@ -535,9 +536,10 @@ def cost_by_sku(
                 if not service or s == service]
     where = ["usage_date BETWEEN @from AND @to"]
     params: dict = {"from": from_, "to": to}
-    if service:
-        where.append("service_description = @service")
-        params["service"] = service
+    for col, val in (("service_description", service), ("label_environment", environment), ("label_app", app)):
+        if val:
+            where.append(f"{col} = @{col}")
+            params[col] = val
     rows = query(f"""
         SELECT service_description, sku_description, ANY_VALUE(pricing_unit) pricing_unit,
                SUM(net_cost_brl) net_cost_brl, SUM(usage_amount_pricing_units) usage_qty,
@@ -545,7 +547,11 @@ def cost_by_sku(
         FROM `{RPT}.rpt_cost_daily` WHERE {" AND ".join(where)}
         GROUP BY 1,2 ORDER BY net_cost_brl DESC
     """, params)
-    return [m.SkuCostDTO(**r, ) for r in rows]
+    # SAFE_DIVIDE por uso somando 0 (SKU com custo mas sem unidade de uso registrada, ex.
+    # linha de ajuste/credito) vira NULL — SkuCostDTO exige float, não Optional.
+    for r in rows:
+        r["unit_cost_brl"] = r.get("unit_cost_brl") or 0.0
+    return [m.SkuCostDTO(**r) for r in rows]
 
 
 @router.get("/sku/new", response_model=list[m.NewSkuDTO])
