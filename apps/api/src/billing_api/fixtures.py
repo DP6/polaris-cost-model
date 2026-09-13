@@ -41,7 +41,6 @@ DIMENSIONS = {
     "apps": ["atlas", "polaris-cost-control", "observability-hub"],
     "invoice_months": ["202607", "202608", "202609"],
     "data_updated_at": META["data_updated_at"],
-    "currency_rate": RATE,
     "export_ok": True,
     "source_rows": META["source_rows"],
 }

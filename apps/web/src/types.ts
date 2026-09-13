@@ -13,7 +13,6 @@ export interface Dimensions {
   apps: string[];
   invoice_months: string[];
   data_updated_at: string;
-  currency_rate: number;
   export_ok: boolean;
   source_rows: number;
 }
