@@ -99,12 +99,16 @@ export function TemporalChart({
   groupBy,
   onChange,
   height = 260,
+  controls = true,
 }: {
   data: CostSeriesPoint[] | undefined;
   grain: Grain;
   groupBy: GroupBy;
   onChange: (p: { grain: Grain; groupBy: GroupBy }) => void;
   height?: number;
+  /** false esconde os seletores de Granularidade/Empilhar por — usado quando a tela já
+   *  fixa grain+groupBy (ex. Tendência: sempre mês/serviço, sem controle do usuário). */
+  controls?: boolean;
 }) {
   useTheme(); // assina o tema pra recolorir gráfico e eixos no toggle (chartColor lê getComputedStyle)
   const { rows, keys } = data ? shape(data, grain) : { rows: [], keys: [] };
@@ -112,53 +116,55 @@ export function TemporalChart({
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 12, marginTop: 4 }}>
-        <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-          <span
-            style={{
-              font: "500 10px/1 Ubuntu",
-              letterSpacing: ".16em",
-              textTransform: "uppercase",
-              color: "var(--muted-foreground)",
-            }}
-          >
-            Granularidade
-          </span>
-          <select
-            value={grain}
-            onChange={(e) => onChange({ grain: e.target.value as Grain, groupBy })}
-            style={selectCss}
-          >
-            <option value="day">Dia</option>
-            <option value="month">Mês</option>
-          </select>
-        </label>
-        <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-          <span
-            style={{
-              font: "500 10px/1 Ubuntu",
-              letterSpacing: ".16em",
-              textTransform: "uppercase",
-              color: "var(--muted-foreground)",
-            }}
-          >
-            Empilhar por
-          </span>
-          <select
-            value={groupBy}
-            onChange={(e) => onChange({ grain, groupBy: e.target.value as GroupBy })}
-            style={selectCss}
-          >
-            {(Object.keys(GROUP_LABEL) as GroupBy[]).map((g) => (
-              <option key={g} value={g}>
-                {GROUP_LABEL[g]}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
+      {controls && (
+        <div style={{ display: "flex", gap: 12, marginTop: 4 }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <span
+              style={{
+                font: "500 10px/1 Ubuntu",
+                letterSpacing: ".16em",
+                textTransform: "uppercase",
+                color: "var(--muted-foreground)",
+              }}
+            >
+              Granularidade
+            </span>
+            <select
+              value={grain}
+              onChange={(e) => onChange({ grain: e.target.value as Grain, groupBy })}
+              style={selectCss}
+            >
+              <option value="day">Dia</option>
+              <option value="month">Mês</option>
+            </select>
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <span
+              style={{
+                font: "500 10px/1 Ubuntu",
+                letterSpacing: ".16em",
+                textTransform: "uppercase",
+                color: "var(--muted-foreground)",
+              }}
+            >
+              Empilhar por
+            </span>
+            <select
+              value={groupBy}
+              onChange={(e) => onChange({ grain, groupBy: e.target.value as GroupBy })}
+              style={selectCss}
+            >
+              {(Object.keys(GROUP_LABEL) as GroupBy[]).map((g) => (
+                <option key={g} value={g}>
+                  {GROUP_LABEL[g]}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      )}
 
-      <div className="chart-well" style={{ marginTop: 10 }}>
+      <div className="chart-well" style={{ marginTop: controls ? 10 : 0 }}>
         <ResponsiveContainer width="100%" height={height}>
           <ComposedChart data={rows} margin={{ top: 8, right: 46, bottom: 4, left: 0 }}>
             <CartesianGrid stroke="var(--border-strong)" vertical={false} />

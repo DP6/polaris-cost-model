@@ -18,7 +18,6 @@ class DimensionsDTO(BaseModel):
     apps: list[str]
     invoice_months: list[str]
     data_updated_at: str
-    currency_rate: float
     export_ok: bool
     source_rows: int
 

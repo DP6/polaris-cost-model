@@ -12,7 +12,7 @@ import {
   StatusBadge,
 } from "../components/ui";
 import { useApi } from "../lib/api";
-import { brl, monthLabel, monthLong, pct, pctPlain, relativeToNow, usd } from "../lib/format";
+import { brl, monthLabel, monthLong, pct, pctPlain, relativeToNow } from "../lib/format";
 import { filterParams, resolveWindow, scopeParams, useFilters } from "../lib/useFilters";
 import type {
   AppAllocation,
@@ -71,8 +71,8 @@ export function VisaoGeral() {
   const svc = useApi<ServiceCost[]>("/cost/by-service", filterParams(f));
   const recon = useApi<ReconRow[]>("/reconciliation", scopeParams(f));
   const budget = useApi<Budget>("/budget", scopeParams(f));
-  const burndown = useApi<BurndownPoint[]>("/budget/burndown", { currency: f.currency });
-  const forecast = useApi<ForecastMonth[]>("/forecast", { horizon: "3", currency: f.currency });
+  const burndown = useApi<BurndownPoint[]>("/budget/burndown");
+  const forecast = useApi<ForecastMonth[]>("/forecast", { horizon: "3" });
   const cseries = useApi<CostSeriesPoint[]>("/cost/series", {
     ...filterParams(f),
     grain: series.grain,
@@ -176,15 +176,7 @@ export function VisaoGeral() {
           <div>
             <span style={groupEyebrow}>Período · {janela}</span>
             <MetricGrid cols={4}>
-              <MetricTile
-                label="Custo líquido"
-                value={f.currency === "USD" ? usd(s.net_cost_mtd_usd) : brl(s.net_cost_mtd_brl)}
-                sub={
-                  <span className="mono">
-                    {f.currency === "USD" ? brl(s.net_cost_mtd_brl) : usd(s.net_cost_mtd_usd)}
-                  </span>
-                }
-              />
+              <MetricTile label="Custo líquido" value={brl(s.net_cost_mtd_brl)} />
               <MetricTile
                 label="Δ vs. período anterior"
                 value={pct(s.mom_pct)}

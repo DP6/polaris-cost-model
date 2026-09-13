@@ -17,7 +17,6 @@ export interface Filters {
   service?: string;
   environment?: string;
   app?: string;
-  currency: "BRL" | "USD";
 }
 
 const iso = (d: Date) => d.toISOString().slice(0, 10);
@@ -52,7 +51,7 @@ export function resolveWindow(f: Filters): { from: string; to: string } {
 
 const STORAGE = "pcm:filters";
 
-function readStored(): Partial<Pick<Filters, "period" | "currency">> {
+function readStored(): Partial<Pick<Filters, "period">> {
   try {
     const raw = localStorage.getItem(STORAGE);
     return raw ? JSON.parse(raw) : {};
@@ -62,7 +61,7 @@ function readStored(): Partial<Pick<Filters, "period" | "currency">> {
 }
 
 /** Estado dos filtros globais na querystring (links compartilháveis).
- *  `pcm:filters` só pré-preenche period/currency quando a URL não traz nada. */
+ *  `pcm:filters` só pré-preenche period quando a URL não traz nada. */
 export function useFilters(): [Filters, (patch: Partial<Filters>) => void] {
   const [sp, setSp] = useSearchParams();
   const stored = readStored();
@@ -78,7 +77,6 @@ export function useFilters(): [Filters, (patch: Partial<Filters>) => void] {
     service: sp.get("service") ?? undefined,
     environment: sp.get("environment") ?? undefined,
     app: sp.get("app") ?? undefined,
-    currency: (sp.get("currency") as "BRL" | "USD") ?? stored.currency ?? "BRL",
   };
 
   const set = (patch: Partial<Filters>) => {
@@ -99,12 +97,12 @@ export function useFilters(): [Filters, (patch: Partial<Filters>) => void] {
     }
     if ("from" in patch) apply("from", patch.from);
     if ("to" in patch) apply("to", patch.to);
-    for (const k of ["service", "environment", "app", "currency"] as const) {
+    for (const k of ["service", "environment", "app"] as const) {
       if (k in patch) apply(k, patch[k] as string | undefined);
     }
     setSp(next, { replace: true });
 
-    const merged = { period: patch.period ?? f.period, currency: patch.currency ?? f.currency };
+    const merged = { period: patch.period ?? f.period };
     try {
       localStorage.setItem(STORAGE, JSON.stringify(merged));
     } catch {
@@ -124,7 +122,6 @@ export const filterParams = (f: Filters): Record<string, string | undefined> => 
     service: f.service,
     environment: f.environment,
     app: f.app,
-    currency: f.currency,
   };
 };
 
@@ -133,8 +130,7 @@ export const scopeParams = (f: Filters): Record<string, string | undefined> => (
   service: f.service,
   environment: f.environment,
   app: f.app,
-  currency: f.currency,
 });
 
 export const hasActiveFilters = (f: Filters): boolean =>
-  f.period !== "mes" || !!f.service || !!f.environment || !!f.app || f.currency !== "BRL";
+  f.period !== "mes" || !!f.service || !!f.environment || !!f.app;
