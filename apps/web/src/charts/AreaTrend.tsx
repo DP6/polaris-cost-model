@@ -9,8 +9,18 @@ export interface TrendPoint {
   ma7?: number;
 }
 
-/** Área de série temporal única (net cost diário) + linha de média móvel opcional. */
-export function AreaTrend({ data, height = 220 }: { data: TrendPoint[]; height?: number }) {
+/** Área de série temporal única (net cost diário) + linha de média móvel opcional.
+ *  `formatValue` troca o formatador padrão (`brl`, 2 casas) — usar `brlPrecise` quando os
+ *  valores são sub-centavo (ex. custo por request), senão tudo vira "R$ 0,00" arredondado. */
+export function AreaTrend({
+  data,
+  height = 220,
+  formatValue = brl,
+}: {
+  data: TrendPoint[];
+  height?: number;
+  formatValue?: (v: number | null | undefined) => string;
+}) {
   useTheme(); // assina o tema pra recolorir área/eixos no toggle (chartColor lê getComputedStyle)
   const net = chartColor("net");
   const other = chartColor("other");
@@ -20,9 +30,9 @@ export function AreaTrend({ data, height = 220 }: { data: TrendPoint[]; height?:
         <AreaChart data={data} margin={{ top: 8, right: 12, bottom: 4, left: 0 }}>
           <CartesianGrid stroke="var(--border-strong)" vertical={false} />
           <XAxis dataKey="label" tick={axisStyle} tickLine={false} axisLine={false} minTickGap={28} />
-          <YAxis width={52} tick={axisStyle} tickLine={false} axisLine={false} tickFormatter={(v) => brl(v)} />
+          <YAxis width={52} tick={axisStyle} tickLine={false} axisLine={false} tickFormatter={(v) => formatValue(v)} />
           <Tooltip
-            formatter={((v: unknown, name: unknown) => [brl(Number(v)), name === "value" ? "líquido" : "média 7d"]) as never}
+            formatter={((v: unknown, name: unknown) => [formatValue(Number(v)), name === "value" ? "líquido" : "média 7d"]) as never}
             contentStyle={{
               background: "var(--foreground)",
               border: 0,
