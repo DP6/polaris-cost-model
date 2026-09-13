@@ -57,8 +57,15 @@ def query(sql: str, params: dict[str, Any] | None = None) -> list[dict[str, Any]
     job_params = [
         bigquery.ScalarQueryParameter(k, _bq_type(v), v) for k, v in (params or {}).items()
     ]
+    # labels do job: o BigQuery inclui labels de job no billing export (doc oficial) — com
+    # isso, o custo de rodar esta API deixa de cair no pseudo-app "(BigQuery · outras
+    # queries)" da reconciliacao de alocacao e ganha label_app/label_environment nativos.
     job = _get_client().query(
-        sql, job_config=bigquery.QueryJobConfig(query_parameters=job_params)
+        sql,
+        job_config=bigquery.QueryJobConfig(
+            query_parameters=job_params,
+            labels={"app": s.app_label, "environment": s.env_label},
+        ),
     )
     rows = [dict(r) for r in job.result()]
     _cache[key] = (now, rows)
