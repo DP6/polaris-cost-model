@@ -32,6 +32,8 @@ ENDPOINTS = [
     ("/api/forecast", {}),
     ("/api/allocation/coverage", {}),
     ("/api/allocation/coverage/weekly", {}),
+    ("/api/allocation/coverage/by-component", {}),
+    ("/api/allocation/coverage/unlabeled-resources", {}),
     ("/api/allocation/by-app", RANGE),
     ("/api/allocation/by-env", RANGE),
     ("/api/allocation/chargeback-readiness", {}),
