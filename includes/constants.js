@@ -68,6 +68,17 @@ const SECRET_APP_MAP = [
   { match: "name LIKE 'polaris-%'", app: "polaris" },
 ];
 
+// Componentes onde "cobertura de label" faz sentido medir por RECURSO: resource.global_name
+// identifica um recurso persistente e taggeavel de verdade (o proprio Cloud Run
+// service/Secret Manager secret, que carrega label no GCP mesmo quando o billing export
+// nao repassa pra linha de custo). BigQuery fica de fora de proposito: resource.global_name
+// la e um Job ID -- uma EXECUCAO/acao pontual, nao um recurso permanente com label proprio,
+// entao "cobertura de label" nao se aplica (nao existe label pra medir, so heuristica de
+// nome de job, que e coisa de allocation, nao de cobertura). Dataplex/Cloud Scheduler tambem
+// ficam de fora -- resource.global_name vem sempre NULL pra eles, sem como identificar
+// recurso individual.
+const LABEL_COVERAGE_APPLICABLE_SERVICES = ["Cloud Run", "Secret Manager"];
+
 function resourceNameAfter(expr, segment) {
   return "REGEXP_EXTRACT(" + expr + ", r'/" + segment + "/([^/]+)$')";
 }
@@ -135,7 +146,7 @@ module.exports = {
   CUD_REEVAL_THRESHOLD_BRL, DEPLOY_COUNT_PER_MONTH,
   STG, MART, RPT,
   sourceRef, labelCol, labelColumns, lookbackFilter,
-  CLOUD_RUN_APP_MAP, SECRET_APP_MAP,
+  CLOUD_RUN_APP_MAP, SECRET_APP_MAP, LABEL_COVERAGE_APPLICABLE_SERVICES,
   resourceNameAfter, appCaseFromMap, cloudRunAppCase, cloudRunEnvCase,
   secretAppCase, secretEnvCase, bigQueryAppCase,
 };
