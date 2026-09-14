@@ -2,7 +2,7 @@ config {
   type: "view",
   schema: dataform.projectConfig.vars.reporting_dataset,
   tags: ["billing_polaris"],
-  description: "Lista os recursos (dentro de LABEL_COVERAGE_APPLICABLE_SERVICES -- Cloud Run, Secret Manager) que faltam pelo menos 1 label no export, pra time de plataforma ir aplicar na origem. Companion de rpt_label_coverage_by_component. Janela: ultimos 30 dias, ordenado por custo (prioriza o que mais pesa)."
+  description: "Lista os recursos (dentro de LABEL_COVERAGE_APPLICABLE_SERVICES -- Cloud Run, Secret Manager) que faltam pelo menos 1 label, pra time de plataforma ir aplicar na origem. app/environment usam label_app_reconciled/label_environment_reconciled (label real OU reconciliado por nome via CLOUD_RUN_APP_MAP/SECRET_APP_MAP, ver stg_billing_polaris) -- sem isso, todo recurso de Cloud Run/Secret Manager ja rotulado aparecia aqui mesmo assim, porque essas linhas de billing quase nunca carregam a label do recurso no export (limitacao do GCP, ver includes/constants.js). managed_by continua sobre o label bruto: nao existe reconciliacao por nome pra terraform/manual ainda. Companion de rpt_label_coverage_by_component. Janela: ultimos 30 dias, ordenado por custo (prioriza o que mais pesa)."
 }
 
 js { const c = require("includes/constants"); }
@@ -11,10 +11,10 @@ WITH resources AS (
   SELECT
     service_description,
     resource_global_name,
-    LOGICAL_OR(label_app IS NOT NULL)         AS has_app,
-    LOGICAL_OR(label_environment IS NOT NULL) AS has_environment,
-    LOGICAL_OR(label_managed_by IS NOT NULL)  AS has_managed_by,
-    SUM(net_cost_brl)                         AS net_cost_brl
+    LOGICAL_OR(label_app_reconciled IS NOT NULL)         AS has_app,
+    LOGICAL_OR(label_environment_reconciled IS NOT NULL) AS has_environment,
+    LOGICAL_OR(label_managed_by IS NOT NULL)             AS has_managed_by,
+    SUM(net_cost_brl)                                    AS net_cost_brl
   FROM ${ref("stg_billing_polaris")}
   WHERE resource_global_name IS NOT NULL
     AND usage_date >= DATE_SUB(CURRENT_DATE('${c.TIMEZONE}'), INTERVAL 30 DAY)
