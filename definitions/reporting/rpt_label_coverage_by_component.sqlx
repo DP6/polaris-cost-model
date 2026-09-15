@@ -2,7 +2,7 @@ config {
   type: "view",
   schema: dataform.projectConfig.vars.reporting_dataset,
   tags: ["billing_polaris"],
-  description: "Cobertura de label por COMPONENTE (Cloud Run, Secret Manager, ...) -- fracao de recursos DISTINTOS com cada label aplicado, independente de custo ou volume de execucoes/linhas de billing. So entram componentes onde label e aplicavel de verdade (LABEL_COVERAGE_APPLICABLE_SERVICES em includes/constants.js) -- BigQuery fica de fora (resource.global_name la e um Job ID, uma execucao, nao um recurso rotulavel), assim como Dataplex/Cloud Scheduler (resource.global_name sempre NULL, sem como identificar recurso). Janela: ultimos 30 dias (estado atual de rotulagem, nao historico)."
+  description: "Cobertura de label por COMPONENTE (Cloud Run, Secret Manager, ...) -- fracao de recursos DISTINTOS com cada label aplicado, independente de custo ou volume de execucoes/linhas de billing. So entram componentes onde label e aplicavel de verdade (LABEL_COVERAGE_APPLICABLE_SERVICES em includes/constants.js) -- BigQuery fica de fora (resource.global_name la e um Job ID, uma execucao, nao um recurso rotulavel), assim como Dataplex/Cloud Scheduler (resource.global_name sempre NULL, sem como identificar recurso). app/environment usam label_app_reconciled/label_environment_reconciled (label real OU reconciliado por nome via CLOUD_RUN_APP_MAP/SECRET_APP_MAP, ver stg_billing_polaris) -- sem isso, recurso ja rotulado no GCP contava como sem label so por causa da mesma limitacao do export. managed_by continua sobre o label bruto (sem reconciliacao por nome ainda). Companion de rpt_unlabeled_resources. Janela: ultimos 30 dias (estado atual de rotulagem, nao historico)."
 }
 
 js { const c = require("includes/constants"); }
@@ -11,9 +11,9 @@ WITH resources AS (
   SELECT
     service_description,
     resource_global_name,
-    LOGICAL_OR(label_app IS NOT NULL)         AS has_app,
-    LOGICAL_OR(label_environment IS NOT NULL) AS has_environment,
-    LOGICAL_OR(label_managed_by IS NOT NULL)  AS has_managed_by
+    LOGICAL_OR(label_app_reconciled IS NOT NULL)         AS has_app,
+    LOGICAL_OR(label_environment_reconciled IS NOT NULL) AS has_environment,
+    LOGICAL_OR(label_managed_by IS NOT NULL)             AS has_managed_by
   FROM ${ref("stg_billing_polaris")}
   WHERE resource_global_name IS NOT NULL
     AND usage_date >= DATE_SUB(CURRENT_DATE('${c.TIMEZONE}'), INTERVAL 30 DAY)
