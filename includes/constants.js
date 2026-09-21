@@ -26,6 +26,26 @@ function sourceRef() {
   return "`" + V.source_project + "." + V.source_dataset + "." + V.source_view + "`";
 }
 
+// Origem deduplicada por fingerprint (mesma logica do CTE keyed/deduped de
+// stg_billing_polaris.sqlx: fingerprint de todas as colunas exceto export_time, mantendo o
+// export mais recente). Extraida pra ca porque assert_fct_reconciliation.sqlx tambem precisa
+// dela: comparar o fato (ja deduplicado) contra a origem CRUA falso-positiva sempre que a GCP
+// reexporta uma linha identica (comum em dia de baixa atividade -- ver assert_source_freshness)
+// dentro da janela, porque o SUM bruto conta a mesma linha 2x. Incidente 2026-09-21: reconciliacao
+// falhando em dev e prod por causa exatamente disso, sem nenhum problema real de dado.
+function dedupedSourceSql(alias) {
+  const a = alias || "s";
+  return (
+    "SELECT " + a + ".*\n" +
+    "  FROM (\n" +
+    "    SELECT " + a + ".*,\n" +
+    "      FARM_FINGERPRINT(TO_JSON_STRING((SELECT AS STRUCT " + a + ".* EXCEPT (export_time)))) AS source_row_fp\n" +
+    "    FROM " + sourceRef() + " AS " + a + "\n" +
+    "  ) AS " + a + "\n" +
+    "  QUALIFY ROW_NUMBER() OVER (PARTITION BY source_row_fp ORDER BY export_time DESC) = 1"
+  );
+}
+
 // nome de coluna de label achatada (managed-by -> label_managed_by)
 function labelCol(key) {
   return "label_" + key.replace(/-/g, "_");
@@ -145,7 +165,7 @@ module.exports = {
   ANOMALY_Z, ANOMALY_MIN_BRL, MONTHLY_BUDGET_BRL, BUDGET_THRESHOLDS,
   CUD_REEVAL_THRESHOLD_BRL, DEPLOY_COUNT_PER_MONTH,
   STG, MART, RPT,
-  sourceRef, labelCol, labelColumns, lookbackFilter,
+  sourceRef, dedupedSourceSql, labelCol, labelColumns, lookbackFilter,
   CLOUD_RUN_APP_MAP, SECRET_APP_MAP, LABEL_COVERAGE_APPLICABLE_SERVICES,
   resourceNameAfter, appCaseFromMap, cloudRunAppCase, cloudRunEnvCase,
   secretAppCase, secretEnvCase, bigQueryAppCase,
