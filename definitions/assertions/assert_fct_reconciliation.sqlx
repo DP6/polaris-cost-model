@@ -1,12 +1,15 @@
 config {
   type: "assertion",
   tags: ["billing_polaris"],
-  description: "Rede de seguranca do dedup: por invoice_month na janela, SUM(net) do fato tem que bater (tol. R$ 0,01) com SUM(cost) + SUM(creditos) direto da view de origem."
+  description: "Rede de seguranca do dedup: por invoice_month na janela, SUM(net) do fato tem que bater (tol. R$ 0,01) com SUM(cost) + SUM(creditos) da origem DEDUPLICADA (mesmo fingerprint de stg_billing_polaris). Precisa dedup aqui tambem -- comparar contra a origem crua falso-positiva sempre que a GCP reexporta uma linha identica dentro da janela (comum em dia de baixa atividade), porque o SUM bruto conta a mesma linha 2x (incidente 2026-09-21)."
 }
 
 js { const c = require("includes/constants"); }
 
-WITH fct AS (
+WITH src_dedup AS (
+  ${c.dedupedSourceSql("s")}
+),
+fct AS (
   SELECT invoice_month, ROUND(SUM(net_cost_brl), 2) AS fct_net_brl
   FROM ${ref("fct_billing_cost_daily")}
   WHERE ${c.lookbackFilter("usage_date")}
@@ -16,7 +19,7 @@ src AS (
   SELECT
     invoice.month AS invoice_month,
     ROUND(SUM(cost) + SUM((SELECT IFNULL(SUM(cr.amount), 0) FROM UNNEST(credits) cr)), 2) AS src_net_brl
-  FROM ${ref("vw_dp6_ci_polaris")}
+  FROM src_dedup
   WHERE ${c.lookbackFilter("DATE(usage_start_time)")}
   GROUP BY invoice_month
 )
