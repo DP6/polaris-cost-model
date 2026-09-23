@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .bq import mock_active
 from .config import get_settings
+from .oauth_routes import router as oauth_router
 from .routes import router
 
 logging.basicConfig(level=logging.INFO)
@@ -18,7 +19,8 @@ app = FastAPI(title="Painel FinOps CI Polaris — API", version="0.1.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=list(S.cors_origins),
-    allow_methods=["GET"],
+    allow_credentials=True,  # sessao de login viaja em cookie (oauth_routes.py)
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
@@ -35,6 +37,7 @@ def healthz() -> dict:
 
 
 app.include_router(router)
+app.include_router(oauth_router)
 
 
 @app.middleware("http")
