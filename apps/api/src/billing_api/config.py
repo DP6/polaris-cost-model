@@ -43,6 +43,21 @@ class Settings(BaseSettings):
     # a imagem seta BILLING_API_STATIC_DIR=/app/static.
     static_dir: str = ""
 
+    # ---- login OAuth (Google), por cima do IAP -- ver oauth_session.py ----
+
+    # "dev" | "prod" -- unica fonte de verdade pra escolher qual par de
+    # secrets ler no Secret Manager (COST_MODEL_*_DEV vs _PROD). Terraform
+    # seta por ambiente; mesmo padrao do dp6-billing-platform.
+    environment: str = "dev"
+
+    # URL base do proprio servico (sem trailing slash), usada pra montar o
+    # redirect_uri do OAuth (`{base}/api/auth/callback`). Terraform injeta a
+    # URL real do Cloud Run; vazio em dev local cai no fallback
+    # http://localhost:8080 (ver oauth_session.build_redirect_uri) -- precisa
+    # ser "localhost" literal, nao 127.0.0.1: e a unica forma do Chrome tratar
+    # um cookie Secure como valido sem TLS.
+    oauth_redirect_base_url: str = ""
+
     @property
     def rpt(self) -> str:
         return f"`{self.gcp_project}.{self.reporting_dataset}`"

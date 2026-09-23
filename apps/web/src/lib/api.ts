@@ -6,12 +6,18 @@ export async function apiGet<T>(path: string, params?: Record<string, string | u
   const qs = new URLSearchParams();
   for (const [k, v] of Object.entries(params ?? {})) if (v != null && v !== "") qs.set(k, v);
   const url = `${BASE}/api${path}${qs.toString() ? `?${qs}` : ""}`;
-  const res = await fetch(url, { headers: { Accept: "application/json" } });
+  const res = await fetch(url, { headers: { Accept: "application/json" }, credentials: "include" });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body?.error?.message ?? `${res.status} ${res.statusText}`);
   }
   return res.json() as Promise<T>;
+}
+
+/** POST simples -- hoje só usado por auth/logout (endpoint sem body/resposta). */
+export async function apiPost(path: string): Promise<void> {
+  const res = await fetch(`${BASE}/api${path}`, { method: "POST", credentials: "include" });
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
 }
 
 type State<T> = { data?: T; error?: string; loading: boolean };
