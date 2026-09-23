@@ -18,7 +18,8 @@ module "api" {
   allowed_members = var.iap_allowed_members
 
   # a API le so o dataset reporting -> jobUser no projeto + dataViewer no dataset (via data_stack)
-  runtime_project_roles = ["roles/bigquery.jobUser"]
+  # secretAccessor: login OAuth (oauth_session.py) le client id/secret/JWT/allowlist do Secret Manager
+  runtime_project_roles = ["roles/bigquery.jobUser", "roles/secretmanager.secretAccessor"]
 
   env_vars = {
     BILLING_API_GCP_PROJECT        = var.project_id
@@ -27,6 +28,11 @@ module "api" {
     BILLING_API_BQ_LOCATION        = var.location
     BILLING_API_MONTHLY_BUDGET_BRL = "20"
     BILLING_API_MOCK               = "false"
+    BILLING_API_ENVIRONMENT        = local.env
+    # URL do proprio servico (formato estavel do Cloud Run v2) -- confirmar
+    # contra `gcloud run services describe billing-api-dev --format='value(status.url)'`
+    # depois do 1o deploy; se divergir, so ajustar esta linha.
+    BILLING_API_OAUTH_REDIRECT_BASE_URL = "https://billing-api-${local.env}-${var.project_number}.${var.region}.run.app"
   }
 }
 
